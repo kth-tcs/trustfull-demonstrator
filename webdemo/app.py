@@ -9,11 +9,17 @@ POLL_DATA = {
     "fields": ("Napoleon", "George Bush", "Christina, Queen of Sweden"),
 }
 FILENAME = "data.txt"
+STATS = {}
+if os.path.exists(FILENAME):
+    with open(FILENAME) as f:
+        STATS["nvotes"] = sum(1 for _ in f)
+else:
+    STATS["nvotes"] = 0
 
 
 @app.route("/")
 def root():
-    return render_template("poll.html", data=POLL_DATA)
+    return render_template("poll.html", data=POLL_DATA, stats=STATS)
 
 
 @app.route("/poll")
@@ -23,6 +29,8 @@ def poll():
     with open(FILENAME, "a") as f:
         print(vote, file=f)
 
+    STATS["nvotes"] = STATS.get("nvotes", 0) + 1
+
     return render_template("thankyou.html", data=POLL_DATA)
 
 
@@ -31,6 +39,7 @@ def reset():
     if os.path.exists(FILENAME):
         stat = os.stat(FILENAME)
         os.remove(FILENAME)
+        STATS["nvotes"] = 0
         return f"Succesfully deleted {FILENAME}:<br/><pre>   {stat}</pre>"
     return "Nothing to do!"
 
