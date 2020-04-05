@@ -12,7 +12,8 @@
 <body>
     <div class="container">
         <div class="card" style="width: 30rem;">
-            <form action="/poll" onsubmit="return captureForm()"> <!-- TODO: POST & HTTPS -->
+            <form action="/" method="POST" onsubmit="return captureForm()">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                 <div class="card-body">
                     <h2 class="card-title">{{ data.question }}</h2>
                     <p class="card-text">

@@ -1,8 +1,11 @@
 import os
 
 from flask import Flask, render_template, request, send_file
+from flask_wtf.csrf import CSRFProtect
 
 app = Flask(__name__)
+app.config["SECRET_KEY"] = os.urandom(32)
+CSRFProtect(app)
 
 POLL_DATA = {
     "question": "Who do you vote for?",
@@ -11,21 +14,18 @@ POLL_DATA = {
 FILENAME = "data.txt"
 STATS = {}
 if os.path.exists(FILENAME):
-    with open(FILENAME) as f:
-        STATS["nvotes"] = sum(1 for _ in f)
+    with open(FILENAME) as _f:
+        STATS["nvotes"] = sum(1 for _ in _f)
 else:
     STATS["nvotes"] = 0
 
 
-@app.route("/")
+@app.route("/", methods=("GET", "POST"))
 def root():
-    return render_template("poll.html", data=POLL_DATA, stats=STATS)
+    if request.method == "GET":
+        return render_template("poll.html", data=POLL_DATA, stats=STATS)
 
-
-@app.route("/poll")
-def poll():
-    vote = request.args.get("field")
-
+    vote = request.form.get("field")
     with open(FILENAME, "a") as f:
         print(vote, file=f)
 
