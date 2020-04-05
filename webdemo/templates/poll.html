@@ -12,7 +12,7 @@
 <body>
     <div class="container">
         <div class="card" style="width: 30rem;">
-            <form action="/poll">
+            <form action="/poll" onsubmit="return captureForm()"> <!-- TODO: POST & HTTPS -->
                 <div class="card-body">
                     <h2 class="card-title">{{ data.question }}</h2>
                     <p class="card-text">
@@ -25,7 +25,7 @@
                     <li class="list-group-item">
                         <div class="radio">
                             <label>
-                                <input type="radio" name="field" value="{{ e }}"> {{ e }}<br>
+                                <input class="candidate" type="radio" name="field" value="{{ e }}"> {{ e }}<br>
                             </label>
                         </div>
                     </li>
@@ -40,6 +40,25 @@
             </form>
         </div>
     </div>
+
+    <script>
+        function captureForm() {
+            for (const candidate of document.getElementsByClassName('candidate')) {
+                if (candidate.checked) {
+                    console.log(candidate);
+
+                    // TODO: Encrypt vote using VJSC
+                    // TODO: Validate value
+
+                    return true;
+                }
+            }
+
+            console.error('No candidate selected');
+            return false;
+        }
+    </script>
+
 </body>
 
 </html>
