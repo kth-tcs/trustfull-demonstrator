@@ -94,29 +94,26 @@
                 return ret;
             }
 
-            var randomSource = initRandomSource();
+            const randomSource = initRandomSource();
+            const WIDTH = 1;  // Depends on vmni configuration
 
-            var WIDTH = 1;  // Depends on vmni configuration
-
-            // TODO: Read 'PublicKey' file which is saved as a "raw" ByteTree
-            var bt = verificatum.eio.ByteTree.readByteTreeFromByteArray({{ data.publicKey }});
+            const bt = verificatum.eio.ByteTree.readByteTreeFromByteArray({{data.publicKey}});
 
             console.assert(verificatum.util.byteArrayToAscii(bt.value[0].value[0].value).endsWith('ECqPGroup'));
-            var keyPGroup = verificatum.arithm.ECqPGroup.fromByteTree(bt.value[0].value[1]);
-            var fullPublicKey = new verificatum.arithm.PPGroup(keyPGroup, 2).toElement(bt.value[1]);
-            var eg = new verificatum.crypto.ElGamal(true, keyPGroup, randomSource, 20);
-            var wpk = eg.widePublicKey(fullPublicKey, WIDTH);
+            const keyPGroup = verificatum.arithm.ECqPGroup.fromByteTree(bt.value[0].value[1]);
+            const fullPublicKey = new verificatum.arithm.PPGroup(keyPGroup, 2).toElement(bt.value[1]);
+            const eg = new verificatum.crypto.ElGamal(true, keyPGroup, randomSource, 20);
+            const wpk = eg.widePublicKey(fullPublicKey, WIDTH);
 
             // Encode message
-            var ascii_bytes = s.split('').map(x => x.charCodeAt(0));  // TODO: do it with verificatum utils
-            var encoded = wpk.pGroup.project(1).encode(ascii_bytes);
-            var encrypted = eg.encrypt(wpk, encoded);
+            const ascii_bytes = s.split('').map(x => x.charCodeAt(0));
+            const encoded = wpk.pGroup.project(1).encode(ascii_bytes);
+            const encrypted = eg.encrypt(wpk, encoded);
 
             // XXX: why?
-            var encrypted0 = encrypted.values[0].toByteTree().toByteArray();
-            var encrypted1 = encrypted.values[1].toByteTree().toByteArray();
+            const encrypted0 = encrypted.values[0].toByteTree().toByteArray();
+            const encrypted1 = encrypted.values[1].toByteTree().toByteArray();
             return JSON.stringify([encrypted0, encrypted1]);
-            // return JSON.stringify(encrypted.toByteTree().toByteArray());
         }
     </script>
 
