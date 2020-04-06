@@ -1,16 +1,21 @@
+import mimetypes
 import os
 
 from flask import Flask, render_template, request, send_file
 from flask_wtf.csrf import CSRFProtect
 
+mimetypes.add_type("application/wasm", ".wasm")
+
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.urandom(32)
 CSRFProtect(app)
 
-POLL_DATA = {
-    "question": "Who do you vote for?",
-    "fields": ("Napoleon", "George Bush", "Christina, Queen of Sweden"),
-}
+with open("publicKey", "rb") as _f:  # TODO: more properly
+    POLL_DATA = {
+        "question": "Who do you vote for?",
+        "fields": ("Napoleon", "George Bush", "Christina, Queen of Sweden"),
+        "publicKey": list(map(int, _f.read())),
+    }
 FILENAME = "data.txt"
 STATS = {}
 if os.path.exists(FILENAME):
@@ -36,14 +41,20 @@ def root():
 
 @app.route("/reset")
 def reset():
+    STATS["nvotes"] = 0
+
     if os.path.exists(FILENAME):
         stat = os.stat(FILENAME)
         os.remove(FILENAME)
-        STATS["nvotes"] = 0
         return f"Succesfully deleted {FILENAME}:<br/><pre>   {stat}</pre>"
+
     return "Nothing to do!"
 
 
+# XXX: Someone needs to post-process these. Options are:
+# 1. This app can implement a rough ByteTree, enough to do the translation
+# 2. (receiver side) A Java-based program that uses verificatum
+# 3. (receiver side) A VJSC-based node program
 @app.route("/results")
 def results():
     if os.path.exists(FILENAME):
