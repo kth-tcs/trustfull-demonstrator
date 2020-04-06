@@ -8,6 +8,7 @@ mimetypes.add_type("application/wasm", ".wasm")
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.urandom(32)
+app.debug = True
 CSRFProtect(app)
 
 with open(
