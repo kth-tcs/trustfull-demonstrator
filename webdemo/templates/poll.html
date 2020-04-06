@@ -9,36 +9,53 @@
     <title>{{ data.question }}</title>
 </head>
 
-<body>
+<body style="background-color:powderblue;">
     <div class="container">
-        <div class="card" style="width: 30rem;">
-            <form action="/" method="POST" onsubmit="return captureForm()">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+        <div class="card-group">
+            <div class="card">
+                <form action="/" method="POST" onsubmit="return captureForm()">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                    <div class="card-body">
+                        <h2 class="card-title">{{ data.question }}</h2>
+                    </div>
+                    <ul class="list-group list-group-flush">
+                        <div class="card-header">Candidates</div>
+                        {% for e in data.fields %}
+                        <li class="list-group-item">
+                            <div class="radio">
+                                <label>
+                                    <input class="candidate" type="radio" name="field" value="{{ e }}"> {{ e }}<br>
+                                </label>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    <div class="card-body">
+                        <button type="submit" class="btn btn-primary">Vote</button>
+                    </div>
+                    <div class="card-footer text-muted">
+                        {{ stats.nvotes }} votes so far
+                    </div>
+                </form>
+            </div>
+            <div class="card">
                 <div class="card-body">
-                    <h2 class="card-title">{{ data.question }}</h2>
-                    <p class="card-text">
-                        Election using the Verificatum JavaScript Cryptographic library for client-side encryption.
-                    </p>
-                </div>
-                <ul class="list-group list-group-flush">
-                    <div class="card-header">Candidates</div>
-                    {% for e in data.fields %}
-                    <li class="list-group-item">
-                        <div class="radio">
-                            <label>
-                                <input class="candidate" type="radio" name="field" value="{{ e }}"> {{ e }}<br>
-                            </label>
-                        </div>
-                    </li>
-                    {% endfor %}
-                </ul>
-                <div class="card-body">
-                    <button type="submit" class="btn btn-primary">Vote</button>
+                    <h2 class="card-title">About</h2>
+                    <p class="card-text"> Demo election web interface using the <a
+                            href="https://github.com/kth-tcs/verificatum-vjsc/">Verificatum JavaScript Cryptographic
+                            library</a> for client-side encryption.</p>
+                    <p class="card-text">Encryption must be done with a provided public key which is produced by the <a
+                            href="https://www.verificatum.org/">Verificatum</a> mix network.</p>
+                    <p class="card-text">When the &quot;submit&quot; button is pressed, the form&#39;s data is modified
+                        and the
+                        currently selected option is encrypted using the public key and some randomness. The web
+                        server is then unable to decrypt the vote. Instead, the mix network that produced the public
+                        key must jointly decrypt and shuffle the collected votes.</p>
                 </div>
                 <div class="card-footer text-muted">
-                    {{ stats.nvotes }} votes so far
+                    Made for the <a href="https://www.trustfull.proj.kth.se/">Trustfull project</a>
                 </div>
-            </form>
+            </div>
         </div>
     </div>
 
