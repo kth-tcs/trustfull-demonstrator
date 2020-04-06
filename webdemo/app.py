@@ -1,8 +1,12 @@
+import io
+import json
 import mimetypes
 import os
 
 from flask import Flask, render_template, request, send_file
 from flask_wtf.csrf import CSRFProtect
+
+from .bytetree import ByteTree
 
 mimetypes.add_type("application/wasm", ".wasm")
 
@@ -54,15 +58,41 @@ def reset():
     return "Nothing to do!"
 
 
-# XXX: Someone needs to post-process these. Options are:
-# 1. This app can implement a rough ByteTree, enough to do the translation
-# 2. (receiver side) A Java-based program that uses verificatum
-# 3. (receiver side) A VJSC-based node program
 @app.route("/results")
 def results():
-    if os.path.exists(FILENAME):
-        return send_file(FILENAME)
-    return "No results found", 404
+    if not os.path.exists(FILENAME):
+        return "No results found", 404
+
+    with open(FILENAME) as f:
+        return send_file(
+            io.BytesIO(
+                ByteTree(  # Single ByteTree to hold all encrypted votes
+                    list(
+                        map(
+                            ByteTree,  # Create left & right ByteTree
+                            zip(  # Convert N x 2 -> 2 x N
+                                *list(
+                                    map(
+                                        lambda x: (
+                                            ByteTree.from_byte_array(
+                                                x[0]  # encrypted0
+                                            ),
+                                            ByteTree.from_byte_array(
+                                                x[1]  # encrypted1
+                                            ),
+                                        ),
+                                        map(json.loads, f),
+                                    )
+                                )
+                            ),
+                        )
+                    )
+                ).to_byte_array()
+            ),
+            mimetype="application/octet-stream",
+            attachment_filename="ciphertexts",
+            as_attachment=True,
+        )
 
 
 if __name__ == "__main__":
