@@ -10,7 +10,9 @@ app = Flask(__name__)
 app.config["SECRET_KEY"] = os.urandom(32)
 CSRFProtect(app)
 
-with open("publicKey", "rb") as _f:  # TODO: more properly
+with open(
+    os.path.join(os.path.abspath(os.path.dirname(__file__)), "publicKey"), "rb"
+) as _f:  # TODO: more properly
     POLL_DATA = {
         "question": "Who do you vote for?",
         "fields": ("Napoleon", "George Bush", "Christina, Queen of Sweden"),
