@@ -35,7 +35,7 @@
                         <a href="/results" class="btn btn-secondary">Results</a>
                     </div>
                     <div class="card-footer text-muted">
-                        {{ stats.nvotes }} votes so far
+                        {{ stats.nvotes }} vote{{ '' if stats.nvotes == 1 else 's' }} so far
                     </div>
                 </form>
             </div>
