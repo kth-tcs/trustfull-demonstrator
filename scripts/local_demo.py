@@ -115,7 +115,16 @@ def vmn(args):
 
     if args.demo:
         args.call(["vmnd", "-ciphs", "0/publicKey", 100, "ciphertexts"])
-    elif not args.dry_run:
+    elif args.dry_run:
+        pass
+    elif args.post:
+        with open("0/publicKey", "rb") as f:
+            request("POST", f"{args.post}/publicKey", files={"publicKey": f})
+        input("Vote and press Enter ")
+        with open("ciphertexts", "wb") as f:
+            r = request("GET", f"{args.post}/ciphertexts")
+            f.write(r.content)
+    else:
         while not os.path.exists("ciphertexts"):
             input("Please collect ciphertexts and press Enter ")
 
@@ -136,6 +145,17 @@ def vmn(args):
     ]
     for p in processes:
         p.communicate()
+
+
+def request(method, *args, **kwargs):
+    import requests
+
+    method = {"post": requests.post, "get": requests.get}[method.lower()]
+    print(method.__name__, args, kwargs)
+
+    r = method(*args, **kwargs)
+    r.raise_for_status()
+    return r
 
 
 VALID_CHARS = " -_.,()" + string.ascii_letters + string.digits
@@ -210,10 +230,13 @@ def parse_args():
     parser.add_argument("--no-vbt", action="store_false", dest="vbt")
     parser.add_argument("--demo", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument(
+        "--post", nargs="?", default=None, const="https://vmn-webapp.azurewebsites.net/"
+    )
 
     # 2.1.1 common parameters
     parser.add_argument("-sid", "--session-id", default="Session1")
-    parser.add_argument("-name", "--name", default="ASSERT election")
+    parser.add_argument("-name", "--name", default="myElection")
     parser.add_argument("-nopart", "--num-part", default=3, type=int)
     parser.add_argument("-thres", "--threshold", default=0, type=int)
 
@@ -238,6 +261,8 @@ def parse_args():
         raise ValueError("Wrong number of IPs passed")
 
     args.call = call_print if args.dry_run else call
+    if args.post:
+        args.post = args.post.rstrip("/")
 
     return args
 
