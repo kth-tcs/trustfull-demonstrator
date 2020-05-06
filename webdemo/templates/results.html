@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
+        integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+    <title>{{ meta.question }}</title>
+
+</head>
+
+<body style="background-color:powderblue;">
+    <div class="container">
+        <h2 class="text-center"> {{ meta.nvotes }} votes total</h2>
+        <p>
+            {% for bar in bars %}
+            <div class="progress" style="height: 50px;">
+                <div class="progress-bar" role="progressbar" aria-valuenow="{{ bar[1] }}" aria-valuemin="0"
+                    aria-valuemax="100" style="width:{{ bar[1] }}%; background-color: {{ bar[3] }};">
+                    {{ bar[0] }}: {{ bar[2] }} Votes
+                </div>
+            </div>
+            {% endfor %}
+        </p>
+    </div>
+</body>
+
+</html>

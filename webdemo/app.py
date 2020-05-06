@@ -2,6 +2,8 @@ import io
 import json
 import mimetypes
 import os
+from itertools import cycle, islice
+from operator import itemgetter
 
 from flask import Flask, render_template, request, send_file
 from flask_wtf.csrf import CSRFProtect
@@ -91,10 +93,10 @@ def get_set_public_key():
     return "OK"
 
 
-@app.route("/results")
-def results():
+@app.route("/ciphertexts")
+def ciphertexts():
     if not os.path.exists(FILENAME):
-        return "No results found", 404
+        return "No ciphertexts found", 404
 
     with open(FILENAME) as f:
         return send_file(
@@ -126,6 +128,41 @@ def results():
             attachment_filename="ciphertexts",
             as_attachment=True,
         )
+
+
+@csrf.exempt
+@app.route("/results", methods=("GET", "POST"))
+def results():
+    d = results.__dict__
+    d.setdefault("content", None)
+
+    if request.method == "POST":
+        d["content"] = request.get_json()
+        return "OK"
+
+    content = d.get("content")
+    if content is None:
+        return "No results found", 404
+
+    largest = max(content.values())
+    palette = [
+        "#332288",
+        "#88CCEE",
+        "#44AA99",
+        "#117733",
+        "#999933",
+        "#DDCC77",
+        "#CC6677",
+        "#882255",
+        "#AA4499",
+    ]
+    palette = islice(palette, len(content))
+    meta = dict(
+        question=POLL_DATA["question"], nvotes=sum(content.values()), largest=largest
+    )
+    bars = sorted(content.items(), key=itemgetter(1))
+    bars = [(k, 100 * v / largest, v, color) for (k, v), color in zip(bars, palette)]
+    return render_template("results.html", meta=meta, bars=bars)
 
 
 init_pk()
