@@ -13,33 +13,33 @@
     <div class="container">
         <div class="card-group">
             <div class="card">
-                <form action="/" method="POST" onsubmit="return captureForm()">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-                    <div class="card-body">
+                <div class="card-body">
+                    <form action="/" method="POST" onsubmit="return captureForm()">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                         <h2 class="card-title">{{ data.question }}</h2>
-                    </div>
-                    <ul class="list-group list-group-flush">
-                        <div class="card-header">Candidates</div>
-                        {% for e in data.fields %}
-                        <li class="list-group-item">
-                            <div class="radio">
-                                <label>
-                                    <input class="candidate" type="radio" name="field" value="{{ e }}"> {{ e }}<br>
-                                </label>
-                            </div>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                    <div class="card-body">
-                        <button type="submit" class="btn btn-primary">Vote</button>
-                        <a href="/ciphertexts" class="btn btn-secondary">Ciphertexts</a>
-                        <a href="/results" class="btn btn-secondary">Results</a>
-                        <a href="/publicKey" class="btn btn-secondary">Public Key</a>
-                    </div>
-                    <div class="card-footer text-muted">
-                        {{ stats.nvotes }} vote{{ '' if stats.nvotes == 1 else 's' }} so far
-                    </div>
-                </form>
+                        <ul class="list-group list-group-flush">
+                            <div class="card-header">Candidates</div>
+                            {% for e in data.fields %}
+                            <li class="list-group-item">
+                                <div class="radio">
+                                    <label>
+                                        <input class="candidate" type="radio" name="field" value="{{ e }}"> {{ e }}<br>
+                                    </label>
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        <div class="card-body">
+                            <button type="submit" class="btn btn-primary">Vote</button>
+                            <a href="/ciphertexts" class="btn btn-secondary">Ciphertexts</a>
+                            <a href="/results" class="btn btn-secondary">Results</a>
+                            <a href="/publicKey" class="btn btn-secondary">Public Key</a>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer text-muted">
+                    {{ stats.nvotes }} vote{{ '' if stats.nvotes == 1 else 's' }} so far
+                </div>
             </div>
             <div class="card">
                 <div class="card-body">
@@ -54,6 +54,10 @@
                         currently selected option is encrypted using the public key and some randomness. The web
                         server is then unable to decrypt the vote. Instead, the mix network that produced the public
                         key must jointly decrypt and shuffle the collected votes.</p>
+                    <p class="card-text"><strong>WARNING</strong> this is only for demonstration purposes. Important
+                        safety features are missing. For example, no measures are taken to counter
+                        <em>malleability</em> attacks. For more details, please read the documentation at the official
+                        Verificatum <a href="https://www.verificatum.org/">webpage</a>.</p>
                 </div>
                 <div class="card-footer text-muted">
                     Made for the <a href="https://www.trustfull.proj.kth.se/">Trustfull project</a>
