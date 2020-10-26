@@ -9,6 +9,14 @@
     <title>{{ data.question }}</title>
 </head>
 
+<style>
+.hidden {
+  visibility: hidden;
+  opacity: 0;
+  transition: visibility 0s 2s, opacity 2s linear;
+}
+</style>
+
 <body style="background-color:powderblue;">
     <div class="container">
         <div class="card-group">
@@ -64,6 +72,9 @@
                 </div>
             </div>
         </div>
+        <div class="alert alert-success" id="success" {% if not show_success %} style="display: none;" {% endif %}>
+            <strong>Success!</strong> Thank you for submitting your vote.
+        </div>
     </div>
 
     <script>
@@ -71,6 +82,11 @@
     </script>
     <script src="{{url_for('static', filename='min-vjsc-1.1.1.js')}}"></script>
     <script>
+        // Hide success alert window
+        setTimeout(function() {
+            window.success.className += ' hidden';
+        }, 1000);
+
         function captureForm() {
             for (const candidate of document.getElementsByClassName('candidate')) {
                 if (candidate.checked) {

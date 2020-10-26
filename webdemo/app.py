@@ -44,7 +44,9 @@ def root():
         return "Missing public key!"
 
     if request.method == "GET":
-        return render_template("poll.html", data=POLL_DATA, stats=STATS)
+        return render_template(
+            "poll.html", data=POLL_DATA, stats=STATS, show_success=False
+        )
 
     vote = request.form.get("field")
     with open(FILENAME, "a") as f:
@@ -52,7 +54,7 @@ def root():
 
     STATS["nvotes"] = STATS.get("nvotes", 0) + 1
 
-    return render_template("thankyou.html", data=POLL_DATA)
+    return render_template("poll.html", data=POLL_DATA, stats=STATS, show_success=True)
 
 
 @app.route("/reset")
