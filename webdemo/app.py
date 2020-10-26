@@ -21,7 +21,7 @@ FILENAME = "data.txt"
 PUBLIC_KEY = os.path.join(os.path.abspath(os.path.dirname(__file__)), "publicKey")
 POLL_DATA = {
     "question": "Who do you vote for?",
-    "fields": ("Napoleon", "George Bush", "Christina, Queen of Sweden"),
+    "fields": ("Blue Candidate", "Green Candidate", "Yellow Candidate"),
     "publicKey": None,
 }
 STATS = {}
