@@ -15,7 +15,10 @@ VALID_CHARS = " -_.,()" + string.ascii_letters + string.digits
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "file", default="plaintexts", help="Plaintexts as produced by vmn", nargs="?",
+        "file",
+        default="plaintexts",
+        help="Plaintexts as produced by vmn",
+        nargs="?",
     )
     parser.add_argument(
         "server",
@@ -39,7 +42,7 @@ def parse_args():
 
 
 def main(args):
-    r = requests.post(args.server + args.endpoint, json=vbt(args.file))
+    r = requests.post(args.server + args.endpoint, json=_print(vbt(args.file)))
     if r.ok:
         return 0
 
@@ -58,14 +61,46 @@ def vbt(fname):
                 for c in map(chr, bytes.fromhex(x[0]))
                 if c in VALID_CHARS
             ),
-            # vbt converts the RAW plaintexts to JSON.
-            json.loads(
-                # Read output from vbt but discard null bytes
-                # TODO: fix this in vbt
-                bytes(filter(bool, check_output(["vbt", fname]))).decode()
-            ),
+            _check_output_vbt(fname),
         )
     )
+
+
+def _check_output_vbt(fname):
+    # COMMAND = ['vbt']
+    COMMAND = [
+        "docker",
+        "run",
+        "-it",
+        "--rm",
+        "-v",
+        f"{os.getcwd()}:/workdir",
+        "-w",
+        "/workdir",
+        "vmn",
+        "vbt",
+    ]
+    # vbt converts the RAW plaintexts to JSON.
+    return json.loads(
+        # Read output from vbt but discard null bytes
+        # See: https://github.com/verificatum/verificatum-vcr/pull/4
+        bytes(
+            filter(
+                bool,
+                check_output(
+                    COMMAND
+                    + [
+                        fname,
+                    ]
+                ),
+            )
+        ).decode()
+    )
+
+
+def _print(x, **kwargs):
+    print(x, **kwargs)
+    return x
 
 
 if __name__ == "__main__":
