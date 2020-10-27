@@ -78,7 +78,7 @@ class VirtualMachine:
 
 
 def main():
-    subprocess.call(["docker", "start", CONTAINER])
+    subprocess.call(["docker", "start", CONTAINER], stdout=subprocess.DEVNULL)
     vms = json.loads(azure_call(f"az vm list -g {GROUP}"))
     vms = [VirtualMachine(vm) for vm in vms if vm.get("name", "").startswith("vmn")]
     n = len(vms)
