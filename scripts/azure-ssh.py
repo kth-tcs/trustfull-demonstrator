@@ -5,7 +5,8 @@ import os
 import subprocess
 import sys
 
-CONTAINER = "intelligent_blackburn"
+# Get with `docker run -it mcr.microsoft.com/azure-cli` and then run `az login`.
+CONTAINER = "clever_dirac"
 GROUP = "tcs"
 PORT_HTTP_START = 25432
 PORT_UDP_START = 24321
