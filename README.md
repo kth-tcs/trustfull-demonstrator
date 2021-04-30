@@ -5,7 +5,7 @@ Code for the demonstrator of the Trustfull project
 ## Instructions
 
 1. Start `vmn*` servers in Azure
-2. For python scripts install requests: `pip install requests`
+2. Install requirements for scripts: `pip install -r scripts/requirements.txt`
 3. Initialize Azure container: `docker run -it mcr.microsoft.com/azure-cli` and then run `az login`.
 4. Update container name (`CONTAINER`) in [scripts/azure-ssh.py](scripts/azure-ssh.py) if needed
 5. Run `scripts/azure-ssh.py`
