@@ -134,6 +134,7 @@
             const encrypted = eg.encrypt(wpk, encoded);
 
             // XXX: why?
+            // In format expected by VMN
             const encrypted0 = encrypted.values[0].toByteTree().toByteArray();
             const encrypted1 = encrypted.values[1].toByteTree().toByteArray();
             return JSON.stringify([encrypted0, encrypted1]);

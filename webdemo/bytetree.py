@@ -4,6 +4,13 @@ BYTEORDER = "big"
 
 
 class ByteTree:
+    """
+    Class representing a byte tree, as defined by Verificatum.
+
+    For the exact spec, see Appendix A of the "User Manual for the Verificatum Mix-Net".
+    https://www.verificatum.org/files/vmnum-3.0.4.pdf
+    """
+
     NODE = 0
     LEAF = 1
 
@@ -41,7 +48,7 @@ class ByteTree:
         if tpe == cls.LEAF:
             if index + length > len(source):
                 raise ValueError("Length larger than source")
-            bt = cls(source[index : index + length])
+            byte_tree = cls(source[index : index + length])
             index += length
         else:
             children = []
@@ -49,21 +56,21 @@ class ByteTree:
                 child, offset = cls._from_byte_array(source, index)
                 children.append(child)
                 index += offset
-            bt = cls(children)
-        return bt, index - original_index
+            byte_tree = cls(children)
+        return byte_tree, index - original_index
 
     def to_byte_array(self):
-        dest = self.type.to_bytes(1, BYTEORDER)
-        dest += len(self.value).to_bytes(4, BYTEORDER)
+        byte_array = self.type.to_bytes(1, BYTEORDER)
+        byte_array += len(self.value).to_bytes(4, BYTEORDER)
         # index = 0 + 1 + 4
 
         if self.is_leaf():
-            dest += bytes(self.value)
+            byte_array += bytes(self.value)
             # index += len(self.value)
         else:
             for child in self.value:
                 # child_bytes, offset = child.to_byte_array()
-                dest += child.to_byte_array()
+                byte_array += child.to_byte_array()
                 # index += offset
 
-        return dest
+        return byte_array

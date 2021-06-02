@@ -2,7 +2,7 @@ import io
 import json
 import mimetypes
 import os
-from itertools import cycle, islice
+from itertools import islice
 from operator import itemgetter
 
 from flask import Flask, render_template, request, send_file
@@ -25,17 +25,25 @@ POLL_DATA = {
     "publicKey": None,
 }
 STATS = {}
-if os.path.exists(FILENAME):
-    with open(FILENAME) as _f:
-        STATS["nvotes"] = sum(1 for _ in _f)
-else:
-    STATS["nvotes"] = 0
+
+
+def init_stats():
+    if os.path.exists(FILENAME):
+        STATS["nvotes"] = _count_lines(FILENAME)
+    else:
+        STATS["nvotes"] = 0
+
+
+def _count_lines(filename):
+    with open(filename) as f:
+        return sum(1 for _ in f)
 
 
 def init_pk():
     if os.path.exists(PUBLIC_KEY):
-        with open(PUBLIC_KEY, "rb") as _f:  # TODO: more properly
-            POLL_DATA["publicKey"] = list(map(int, _f.read()))
+        with open(PUBLIC_KEY, "rb") as f:
+            # Public key as int array, to be directly pasted in Javascript code
+            POLL_DATA["publicKey"] = [int(x) for x in f.read()]
 
 
 @app.route("/", methods=("GET", "POST"))
@@ -47,7 +55,6 @@ def root():
         return render_template(
             "poll.html", data=POLL_DATA, stats=STATS, show_success=False
         )
-    assert request.method == "POST"
 
     vote = request.form.get("field")
     error = _validate_vote(vote)
@@ -56,8 +63,7 @@ def root():
 
     with open(FILENAME, "a") as f:
         print(vote, file=f)
-
-    STATS["nvotes"] = STATS.get("nvotes", 0) + 1
+    STATS["nvotes"] += 1
 
     return render_template("poll.html", data=POLL_DATA, stats=STATS, show_success=True)
 
@@ -86,14 +92,24 @@ def _reset():
     if os.path.exists(FILENAME):
         stat = os.stat(FILENAME)
         os.remove(FILENAME)
-        return f"Succesfully deleted {FILENAME}:<br/><pre>   {stat}</pre>"
+        return f"Successfully deleted {FILENAME}:<br/><pre>   {stat}</pre>"
 
     return "Nothing to do!"
 
 
 @csrf.exempt
 @app.route("/publicKey", methods=("GET", "POST"))
-def get_set_public_key():
+def publickey():
+    """
+    Endpoint for the public key.
+
+    POST: Receive the public key from the admin after the mix network generates it. Currently, no authentication is
+        done. The key should be provided as an attachment in the POST request, the file name should be `publicKey`.
+        Example curl call: `curl -i -X POST -F publicKey=@./publicKey <root URL>/publicKey`.
+    GET: Return the current public key as an octet stream.
+
+    This function is exempt from CSRF since it is not meant to be accessed from the web interface.
+    """
     if request.method == "GET":
         return send_file(
             PUBLIC_KEY,
@@ -115,35 +131,30 @@ def get_set_public_key():
 
 @app.route("/ciphertexts")
 def ciphertexts():
+    """
+    Endpoint for the encrypted cipher votes.
+
+    Returns the current votes as a byte tree encoded as an octet stream.
+    """
     if not os.path.exists(FILENAME):
         return "No ciphertexts found", 404
 
     with open(FILENAME) as f:
+        # Read votes as received by encrypt(s) from poll.html
+        vote_list = [
+            (
+                ByteTree.from_byte_array(x[0]),  # encrypted0
+                ByteTree.from_byte_array(x[1]),  # encrypted1
+            )
+            for x in map(json.loads, f)
+        ]
+        # Convert N x 2 -> 2 x N
+        left, right = tuple(zip(*vote_list))
+        # Single ByteTree to hold all encrypted votes
+        byte_tree = ByteTree([ByteTree(left), ByteTree(right)])
+
         return send_file(
-            io.BytesIO(
-                ByteTree(  # Single ByteTree to hold all encrypted votes
-                    list(
-                        map(
-                            ByteTree,  # Create left & right ByteTree
-                            zip(  # Convert N x 2 -> 2 x N
-                                *list(
-                                    map(
-                                        lambda x: (
-                                            ByteTree.from_byte_array(
-                                                x[0]  # encrypted0
-                                            ),
-                                            ByteTree.from_byte_array(
-                                                x[1]  # encrypted1
-                                            ),
-                                        ),
-                                        map(json.loads, f),
-                                    )
-                                )
-                            ),
-                        )
-                    )
-                ).to_byte_array()
-            ),
+            io.BytesIO(byte_tree.to_byte_array()),
             mimetype="application/octet-stream",
             attachment_filename="ciphertexts",
             as_attachment=True,
@@ -153,6 +164,15 @@ def ciphertexts():
 @csrf.exempt
 @app.route("/results", methods=("GET", "POST"))
 def results():
+    """
+    Endpoint for the results page.
+
+    POST: Receive the tally from the admin after the mix net has finished executing. Currently, no authentication is
+        done. Format should be a JSON dictionary candidate -> values.
+    GET: Return a page with a visualization of the received results.
+
+    This function is exempt from CSRF since it is not meant to be accessed from the web interface.
+    """
     d = results.__dict__
     d.setdefault("content", None)
 
@@ -185,6 +205,7 @@ def results():
     return render_template("results.html", meta=meta, bars=bars)
 
 
+init_stats()
 init_pk()
 if __name__ == "__main__":
     app.run(debug=True)
