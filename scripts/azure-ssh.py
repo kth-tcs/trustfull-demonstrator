@@ -8,8 +8,6 @@ import sys
 # Get with `docker run -it mcr.microsoft.com/azure-cli` and then run `az login`.
 CONTAINER = "clever_dirac"
 GROUP = "tcs"
-PORT_HTTP_START = 25432
-PORT_UDP_START = 24321
 
 
 class VirtualMachine:
@@ -28,9 +26,7 @@ class VirtualMachine:
 
     def party(self, idx):
         self.idx = idx
-        # port_http = PORT_HTTP_START + idx
         port_http = 8042
-        # port_udp = PORT_UDP_START + idx
         port_udp = 4042
         # hostname = "localhost"
         hostname = "0.0.0.0"
