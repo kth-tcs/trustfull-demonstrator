@@ -47,14 +47,32 @@ def root():
         return render_template(
             "poll.html", data=POLL_DATA, stats=STATS, show_success=False
         )
+    assert request.method == "POST"
 
     vote = request.form.get("field")
+    error = _validate_vote(vote)
+    if error:
+        return error
+
     with open(FILENAME, "a") as f:
         print(vote, file=f)
 
     STATS["nvotes"] = STATS.get("nvotes", 0) + 1
 
     return render_template("poll.html", data=POLL_DATA, stats=STATS, show_success=True)
+
+
+def _validate_vote(vote):
+    try:
+        x = json.loads(vote)
+    except json.JSONDecodeError:
+        return "JSON Decode Error"
+
+    len_x = len(x)
+    if len_x != 2:
+        return f"Expected 2 elements, got {len_x}"
+
+    return None
 
 
 @app.route("/reset")
