@@ -111,6 +111,9 @@ def publickey():
     This function is exempt from CSRF since it is not meant to be accessed from the web interface.
     """
     if request.method == "GET":
+        if not os.path.isfile(PUBLIC_KEY):
+            return "Missing public key!", 404
+
         return send_file(
             PUBLIC_KEY,
             mimetype="application/octet-stream",
