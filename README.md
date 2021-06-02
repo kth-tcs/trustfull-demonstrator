@@ -4,15 +4,109 @@ Code for the demonstrator of the Trustfull project
 
 ## Instructions
 
-1. Start `vmn*` servers in Azure
-2. Install requirements for scripts: `pip install -r scripts/requirements.txt`
-3. Initialize Azure container: `docker run -it mcr.microsoft.com/azure-cli` and then run `az login`.
-4. Update container name (`CONTAINER`) in [scripts/azure-ssh.py](scripts/azure-ssh.py) if needed
-5. Run `scripts/azure-ssh.py`
-6. When prompted for ciphertexts:
-   1. <https://vmn-webapp.azurewebsites.net/> must be initialized with the new public key:
-      Run `curl -i -X POST -F publicKey=@./publicKey 'https://vmn-webapp.azurewebsites.net/publicKey'`.
-   2. After voting is done, recover the ciphertexts file from the webapp interface:
-      Run `curl 'https://vmn-webapp.azurewebsites.net/ciphertexts' --output ciphertexts`.
-   3. Press "Enter" to continue
-7. Run `scripts/vbt_tally.py`, results are uploaded and accessible in <https://vmn-webapp.azurewebsites.net/results>
+### 1. Create a network security group
+
+In order to allow all ports required by Verificatum, we can create a new "Network Security Group" that specifies the security rules we need.
+
+From Azure's home go to `Create a resource` and search for `network security group`. Type a name and press create it.
+![Network Security Group](https://raw.githubusercontent.com/kth-tcs/trustfull-demonstrator/media/1-1-network-security-group.png)
+
+From the newly created Network Security Group's dashboard, go to `Inbound security rules` and add these rules:
+
+1. The SSH service ![SSH service](https://raw.githubusercontent.com/kth-tcs/trustfull-demonstrator/media/1-2-ssh.png)
+2. Add ports for TCP traffic. This script uses port `8042`. ![TCP
+   rule](https://raw.githubusercontent.com/kth-tcs/trustfull-demonstrator/media/1-3-tcp.png)
+3. Add ports for UDP traffic. This script uses port `4042`. ![UDP
+   rule](https://raw.githubusercontent.com/kth-tcs/trustfull-demonstrator/media/1-4-udp.png)
+
+### 2. Create `N` virtual machines
+
+From Azure's home go to `Create a resource` and select `Ubuntu Server` (preferably 18.04).
+
+In the `Basics` tab, under `Administrator account` select `Use existing public key` and paste a public key created with
+`ssh-keygen`. Re-use the same public key across all virtual machines.
+![Configure public key](https://raw.githubusercontent.com/kth-tcs/trustfull-demonstrator/media/2-1-public-key.png)
+
+In the `Networking` tab, make sure to select the network security group.
+![Configure network security group](https://raw.githubusercontent.com/kth-tcs/trustfull-demonstrator/media/2-2-networking-select.png)
+
+After the resource is created, connect via ssh, copy [`install_server.sh`](./scripts/install_server.sh) to the server
+and execute it.
+
+Repeat `N` times.
+
+### 3. Create the web app for the vote collecting server
+
+From Azure's home go to `Create a resource` and select `Web App`.
+
+Under the `Runtime stack` select a python 3.x version.
+
+![Web app options](https://raw.githubusercontent.com/kth-tcs/trustfull-demonstrator/media/3-1-basics.png)
+
+Once the resource is created, go to it's `Configuration` tab and modify the `Startup Command` field with
+`gunicorn webdemo.app:app > /tmp/gunicorn.mylogs`.
+
+![Startup command](https://raw.githubusercontent.com/kth-tcs/trustfull-demonstrator/media/3-2-startup-command.png)
+
+Then, go to it's `Deployment Center` tab and add this repository as the source either via
+GitHub or through the `Local Git` option.
+
+![Deployment center](https://raw.githubusercontent.com/kth-tcs/trustfull-demonstrator/media/3-3-deployment-center.png)
+
+If using the `Local Git` option, copy the given URL and add it as a remote to your local copy of the repo. Finally,
+push your copy to that remote and the web app should be up and running. You will be prompted for a password, there is a
+username-password pair under the `Local Git credentials` tab. For more options, read
+<https://docs.microsoft.com/en-us/azure/app-service/deploy-configure-credentials>.
+
+You should now be able to access the web demo with the `Browse` button from `Overview`.
+
+### 4. Running an election
+
+First, install all requirements with `pip install -r scripts/requirements.txt`.
+
+The script [`scripts/azure-ssh.py`](scripts/azure-ssh.py) orchestrates the voting process across the created Azure servers. Its options are:
+
+```text
+usage: azure-ssh.py [-h] [--container NAME] [--login] [--prefix PREFIX]
+                    [--username USERNAME] [--group GROUP] [--port_http PORT]
+                    [--port_udp PORT]
+
+optional arguments:
+  -h, --help           show this help message and exit
+  --container NAME     Logged-in azure-cli docker container. Setup using
+                       --login
+  --login              Initialize azure-cli container and login
+  --prefix PREFIX      Azure server names start with this prefix string
+  --username USERNAME  User used to ssh to servers
+  --group GROUP        Azure resource group to use
+  --port_http PORT     VMN http port
+  --port_udp PORT      VMN udp port
+```
+
+Before running, make sure all servers that start with the `vmn*` (default) prefix, are running.
+
+On the first execution, use the `--login` flag to initialize the docker container used to connect to the Azure services
+through the cli.
+
+When prompted for the ciphertexts with the `Waiting for ciphertexts:` message, the mix network has produced the
+publicKey to be used on the webapp. Post it to the server with this command:
+
+```text
+curl -i -X POST -F publicKey=@./publicKey 'https://vmn-webapp.azurewebsites.net/publicKey'  # POST publicKey to server
+```
+
+Then go to <https://vmn-webapp.azurewebsites.net/> and proceed with the election.
+
+When done, you can retrieve the ciphertexts:
+
+```text
+curl 'https://vmn-webapp.azurewebsites.net/ciphertexts' --output ciphertexts  # Get results
+```
+
+Finally, press Enter to continue the script that will upload the ciphertexts to the mix network which will finally
+jointly decode them.
+
+The plaintexts can be decoded with the script [`scripts/vbt_tally.py`](script/vbt_tally.py) which will also upload the
+results to <https://vmn-webapp.azurewebsites.net/results> (by default).
+
+Finally, make sure to shut down `vmn*` servers to avoid unnecessary charges.
