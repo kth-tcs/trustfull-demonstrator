@@ -211,4 +211,14 @@ def results():
 init_stats()
 init_pk()
 if __name__ == "__main__":
+    import sys
+
+    if len(sys.argv) != 2 and sys.argv[1].lower() != "debug":
+        print(
+            "This application is not meant to be run directly. To force-run it in debug mode, pass the 'debug' argument:",
+            sys.argv[0],
+            "debug",
+            file=sys.stderr,
+        )
+
     app.run(debug=True)
