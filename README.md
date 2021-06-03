@@ -27,6 +27,8 @@ In the `Basics` tab, under `Administrator account` select `Use existing public k
 `ssh-keygen`. Re-use the same public key across all virtual machines.
 ![Configure public key](https://raw.githubusercontent.com/kth-tcs/trustfull-demonstrator/media/2-1-public-key.png)
 
+**Important!** make sure that all servers' names start with a unique prefix, e.g. `vmn`.
+
 In the `Networking` tab, make sure to select the network security group.
 ![Configure network security group](https://raw.githubusercontent.com/kth-tcs/trustfull-demonstrator/media/2-2-networking-select.png)
 
