@@ -1,14 +1,20 @@
-# trustfull-demonstrator
+# The e-voting demonstrator of project Trustfull
 
-Code for the demonstrator of the Trustfull project.
+TODO: one paragraph of context: what's the goal of the demonstrator? what is this?
+
+Code for the demonstrator of the [Trustfull project](trustfull.proj.kth.se/).
 
 This repository contains:
-- Under [`webdemo/`](webdemo/) the code for the vote collecting server hosted at <https://vmn-webapp.azurewebsites.net/>.
+- Under [`webdemo/`](webdemo/) the code for the vote collecting server.
 - Under [`scripts/`](scripts/) scripts to orchestrate a demo election from your terminal.
 
-## Instructions
+The current version of the web app for e-voting front-end is hosted at <https://vmn-webapp.azurewebsites.net/> (see instructions for updating this URL below).
 
-### 1. Create a network security group
+## Instructions for running an election
+
+### Deploying the server-side back-end machines
+
+#### 1. Create a network security group
 
 In order to allow all ports required by Verificatum, we can create a new "Network Security Group" that specifies the security rules we need.
 
@@ -23,7 +29,9 @@ From the newly created Network Security Group's dashboard, go to `Inbound securi
 3. Add ports for UDP traffic. This script uses port `4042`. ![UDP
    rule](https://raw.githubusercontent.com/kth-tcs/trustfull-demonstrator/media/1-4-udp.png)
 
-### 2. Create `N` virtual machines
+#### 2. Create N virtual machines
+
+TODO write and document a script for "Repeat `N` times."
 
 From Azure's home go to `Create a resource` and select `Ubuntu Server` (preferably 18.04).
 
@@ -36,12 +44,16 @@ In the `Basics` tab, under `Administrator account` select `Use existing public k
 In the `Networking` tab, make sure to select the network security group.
 ![Configure network security group](https://raw.githubusercontent.com/kth-tcs/trustfull-demonstrator/media/2-2-networking-select.png)
 
+#### 3. Download and Compile Verificatum
+
+TODO: explain what the script does, explain the requirements on the machine (apt-get/docker) to do that.
+
 After the resource is created, connect via ssh, copy [`install_server.sh`](./scripts/install_server.sh) to the server
 and execute it.
 
-Repeat `N` times.
+### Create the front-end web app for the vote collecting server
 
-### 3. Create the web app for the vote collecting server
+TODO: document language/libraries/architecture of the front end web-app.
 
 From Azure's home go to `Create a resource` and select `Web App`.
 
@@ -54,23 +66,36 @@ Once the resource is created, go to it's `Configuration` tab and modify the `Sta
 
 ![Startup command](https://raw.githubusercontent.com/kth-tcs/trustfull-demonstrator/media/3-2-startup-command.png)
 
-Then, go to it's `Deployment Center` tab and add this repository as the source either via
-GitHub or through the `Local Git` option.
+Now the vote collecting server is up and running.
+
+#### Deploying or Updating the frontend code running on Azure
+
+Then, go to its `Deployment Center` tab and add this repository as the source via
+the `Local Git` option in Azure.
 
 ![Deployment center](https://raw.githubusercontent.com/kth-tcs/trustfull-demonstrator/media/3-3-deployment-center.png)
 
-If using the `Local Git` option, copy the given URL and add it as a remote to your local copy of the repo. Finally,
-push your copy to that remote and the web app should be up and running. You will be prompted for a password, there is a
+When using the `Local Git` option, copy the given URL and add it as a remote to your local copy of the repo. Finally,
+push your copy to that remote and the web app at <https://vmn-webapp.azurewebsites.net/> should be up / updated. You will be prompted for a password, there is a
 username-password pair under the `Local Git credentials` tab. For more options, read
 <https://docs.microsoft.com/en-us/azure/app-service/deploy-configure-credentials>.
 
-You should now be able to access the web demo with the `Browse` button from `Overview`.
+### Deploying the mixnet, spawning the mixnet node JVMs
 
-### 4. Running an election
+TODO: one paragraph of context/explanation
+
+TODO explain that we have to call "azure-ssh.py --login" (or explicit error message)
+
+TODO document Azure/SSO xxx@ug.kth.se
+
+TODO document the requirements on the SSH private key, we push the gpg-encrypted private key to the repo, encrypted with all keys at once (only one required for de
+<https://www.monperrus.net/martin/martin-monperrus.public.asc>
 
 First, install all requirements with `pip install -r scripts/requirements.txt`.
 
 The script [`scripts/azure-ssh.py`](scripts/azure-ssh.py) orchestrates the voting process across the created Azure servers. Its options are:
+
+TODO split and rename script, see <https://github.com/kth-tcs/trustfull-demonstrator/issues/1>
 
 ```text
 usage: azure-ssh.py [-h] [--container NAME] [--login] [--prefix PREFIX]
@@ -87,8 +112,8 @@ optional arguments:
   --group GROUP        Azure resource group to use
   --port_http PORT     VMN http port
   --port_udp PORT      VMN udp port
-  --server SERVER      Where to POST the public key and GET the ciphertexts
-                       from
+  --server SERVER      The vote collecting server where to POST the public key and GET the ciphertexts
+                       from (domain name or IP address)
 ```
 
 Before running, make sure all servers that start with the `vmn*` (default) prefix, are running.
@@ -99,10 +124,34 @@ through the cli.
 Once the mix network has produced the public key, the script pushes it to the vote collecting server. Once prompted, go
 to <https://vmn-webapp.azurewebsites.net/> and proceed with the election.
 
-Press Enter to continue. The script will first get the ciphertexts from the vote collecting servers and proceed to
+### Collecting the votes for the tallying
+
+TODO merge scripts `tally-election-on-azure.py` and `scripts/vbt_tally.py` and update doc
+
+The script `tally-election-on-azure.py` will first get the ciphertexts from the vote collecting servers and proceed to
 upload them to the mix network which will finally jointly decode them.
 
 The plaintexts can be decoded with the script [`scripts/vbt_tally.py`](script/vbt_tally.py) which will also upload the
 results to <https://vmn-webapp.azurewebsites.net/results> (by default).
 
-Finally, make sure to shut down `vmn*` servers to avoid unnecessary charges.
+TODO: explain how to run the standalone verifier and understand the input/output
+
+### Shutting down all servers
+
+TODO
+
+In order to avoid unnecessary charges on Azure, it is important to shut down all servers.
+
+This can be done with script XXXXX which shuts down `vmn*` servers.
+
+## Diversification of the election code
+
+TODO explain diversification, and link to crow repo and paper
+
+### Diversification of muladd
+
+TODO what is mul_add, how to compile and run it
+
+### Serving diversified muladd in an election
+
+TODO explain and scripts
