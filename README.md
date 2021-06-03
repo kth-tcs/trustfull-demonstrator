@@ -69,7 +69,7 @@ The script [`scripts/azure-ssh.py`](scripts/azure-ssh.py) orchestrates the votin
 ```text
 usage: azure-ssh.py [-h] [--container NAME] [--login] [--prefix PREFIX]
                     [--username USERNAME] [--group GROUP] [--port_http PORT]
-                    [--port_udp PORT]
+                    [--port_udp PORT] [--server SERVER]
 
 optional arguments:
   -h, --help           show this help message and exit
@@ -81,6 +81,8 @@ optional arguments:
   --group GROUP        Azure resource group to use
   --port_http PORT     VMN http port
   --port_udp PORT      VMN udp port
+  --server SERVER      Where to POST the public key and GET the ciphertexts
+                       from
 ```
 
 Before running, make sure all servers that start with the `vmn*` (default) prefix, are running.
@@ -88,23 +90,11 @@ Before running, make sure all servers that start with the `vmn*` (default) prefi
 On the first execution, use the `--login` flag to initialize the docker container used to connect to the Azure services
 through the cli.
 
-When prompted for the ciphertexts with the `Waiting for ciphertexts:` message, the mix network has produced the
-publicKey to be used on the webapp. Post it to the server with this command:
+Once the mix network has produced the public key, the script pushes it to the vote collecting server. Once prompted, go
+to <https://vmn-webapp.azurewebsites.net/> and proceed with the election.
 
-```text
-curl -i -X POST -F publicKey=@./publicKey 'https://vmn-webapp.azurewebsites.net/publicKey'  # POST publicKey to server
-```
-
-Then go to <https://vmn-webapp.azurewebsites.net/> and proceed with the election.
-
-When done, you can retrieve the ciphertexts:
-
-```text
-curl 'https://vmn-webapp.azurewebsites.net/ciphertexts' --output ciphertexts  # Get results
-```
-
-Finally, press Enter to continue the script that will upload the ciphertexts to the mix network which will finally
-jointly decode them.
+Press Enter to continue. The script will first get the ciphertexts from the vote collecting servers and proceed to
+upload them to the mix network which will finally jointly decode them.
 
 The plaintexts can be decoded with the script [`scripts/vbt_tally.py`](script/vbt_tally.py) which will also upload the
 results to <https://vmn-webapp.azurewebsites.net/results> (by default).

@@ -4,6 +4,9 @@ import json
 import os
 import subprocess
 import sys
+from urllib.parse import urljoin
+
+import requests
 
 
 class VirtualMachine:
@@ -112,6 +115,11 @@ def parse_args():
         metavar="PORT",
         type=int,
     )
+    parser.add_argument(
+        "--server",
+        default="https://vmn-webapp.azurewebsites.net/",
+        help="Where to POST the public key and GET the ciphertexts from",
+    )
 
     return parser.parse_args()
 
@@ -180,8 +188,20 @@ def main(args):
 
     scp(f"{args.username}@{vms[0].ip}:~/election/publicKey", "publicKey", override=True)
 
-    input("Waiting for ciphertexts: ")
-    # Or, genarate the ciphertexts with vmnd:
+    with open("publicKey", "rb") as f:
+        requests.post(
+            urljoin(args.server, "publicKey"), files={"publicKey": f}
+        ).raise_for_status()
+    input(
+        f"Public key pushed to {args.server}. Proceed with voting and press Enter when ready."
+    )
+
+    with open("ciphertexts", "wb") as f:
+        r = requests.get(urljoin(args.server, "ciphertexts"))
+        r.raise_for_status()
+        f.write(r.content)
+
+    # Or, generate the ciphertexts with vmnd:
     # subprocess.run(["vmnd", "-ciphs", "publicKey", "130", "ciphertexts"], check=True)
 
     for vm in vms:
