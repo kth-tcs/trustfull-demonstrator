@@ -67,19 +67,7 @@ def vbt(fname):
 
 
 def _check_output_vbt(fname):
-    # COMMAND = ['vbt']
-    COMMAND = [
-        "docker",
-        "run",
-        "-it",
-        "--rm",
-        "-v",
-        f"{os.getcwd()}:/workdir",
-        "-w",
-        "/workdir",
-        "vmn",
-        "vbt",
-    ]
+    COMMAND = ["vbt"]
     # vbt converts the RAW plaintexts to JSON.
     return json.loads(
         # Read output from vbt but discard null bytes

@@ -1,24 +1,21 @@
 #!/usr/bin/env python3
-
+import argparse
 import json
 import os
 import subprocess
 import sys
 
-# Get with `docker run -it mcr.microsoft.com/azure-cli` and then run `az login`.
-CONTAINER = "clever_dirac"
-GROUP = "tcs"
-
 
 class VirtualMachine:
-    def __init__(self, d):
+    def __init__(self, d, args):
         self.name = d["name"]
-        # self.ip = azure_call(
-        #     f"az vm show -d -g {GROUP} -n {self.name} --query publicIps -o tsv"
-        # ).strip()
-        self.ip = "vmn{idx}.northeurope.cloudapp.azure.com"
+        self.ip = azure_call(
+            f"az vm show -d -g {args.group} -n {self.name} --query publicIps -o tsv",
+            args.container,
+        ).strip()
         self.idx = None
         self._last_p = None
+        self.args = args
 
     def index(self, idx):
         self.idx = idx
@@ -26,16 +23,14 @@ class VirtualMachine:
 
     def party(self, idx):
         self.idx = idx
-        port_http = 8042
-        port_udp = 4042
-        # hostname = "localhost"
         hostname = "0.0.0.0"
-        # hostname = self.ip
-        return f"vmni -party -name party{idx} -http http://{self.ip}:{port_http} -httpl http://{hostname}:{port_http} -hint {self.ip}:{port_udp} -hintl {hostname}:{port_udp} stub.xml -dir {idx}/dir {idx}/privInfo.xml {idx}/protInfo.xml"
+        http = self.args.port_http
+        udp = self.args.port_udp
+        return f"vmni -party -name party{idx} -http http://{self.ip}:{http} -httpl http://{hostname}:{http} -hint {self.ip}:{udp} -hintl {hostname}:{udp} stub.xml -dir {idx}/dir {idx}/privInfo.xml {idx}/protInfo.xml"
 
     def ssh_call(self, cmds):
         self.communicate()
-        self._last_p = p = ssh_call(self.ip, cmds)
+        self._last_p = p = ssh_call(self.ip, self.args.username, cmds)
         return p
 
     def communicate(self):
@@ -53,7 +48,9 @@ class VirtualMachine:
 
         dest = f"{self.idx}-protInfo.xml"
         scp(
-            f"orestis@{self.ip}:~/election/{self.idx}/protInfo.xml", dest, override=True
+            f"{self.args.username}@{self.ip}:~/election/{self.idx}/protInfo.xml",
+            dest,
+            override=True,
         )
 
     def send_prot_info(self, n):
@@ -70,13 +67,83 @@ class VirtualMachine:
             if not os.path.exists(fname):
                 raise RuntimeError(f"{fname} not found")
 
-            scp(fname, f"orestis@{self.ip}:~/election/{idx}/protInfo.xml")
+            scp(fname, f"{self.args.username}@{self.ip}:~/election/{idx}/protInfo.xml")
 
 
-def main():
-    subprocess.call(["docker", "start", CONTAINER], stdout=subprocess.DEVNULL)
-    vms = json.loads(azure_call(f"az vm list -g {GROUP}"))
-    vms = [VirtualMachine(vm) for vm in vms if vm.get("name", "").startswith("vmn")]
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--container",
+        default="azure-cli",
+        help="Logged-in azure-cli docker container. Setup using --login",
+        metavar="NAME",
+    )
+    parser.add_argument(
+        "--login",
+        action="store_true",
+        help="Initialize azure-cli container and login",
+    )
+    parser.add_argument(
+        "--prefix",
+        default="vmn",
+        help="Azure server names start with this prefix string",
+    )
+    parser.add_argument(
+        "--username",
+        default="vmn",
+        help="User used to ssh to servers",
+    )
+    parser.add_argument(
+        "--group",
+        default="tcs",
+        help="Azure resource group to use",
+    )
+    parser.add_argument(
+        "--port_http",
+        default=8042,
+        help="VMN http port",
+        metavar="PORT",
+        type=int,
+    )
+    parser.add_argument(
+        "--port_udp",
+        default=4042,
+        help="VMN udp port",
+        metavar="PORT",
+        type=int,
+    )
+
+    return parser.parse_args()
+
+
+def main(args):
+    if args.login:
+        subprocess.run(
+            ["docker", "rm", "-f", args.container],
+            check=False,
+            stderr=subprocess.DEVNULL,
+        )
+        subprocess.run(
+            [
+                "docker",
+                "run",
+                "-it",
+                "--name",
+                args.container,
+                "mcr.microsoft.com/azure-cli",
+                "az",
+                "login",
+            ],
+            check=True,
+        )
+
+    subprocess.call(["docker", "start", args.container], stdout=subprocess.DEVNULL)
+    vms = json.loads(azure_call(f"az vm list -g {args.group}", args.container))
+    vms = [
+        VirtualMachine(vm, args)
+        for vm in vms
+        if vm.get("name", "").startswith(args.prefix)
+    ]
     n = len(vms)
 
     for idx, vm in enumerate(vms):
@@ -86,6 +153,7 @@ def main():
     for idx, vm in enumerate(vms):
         vm.ssh_call(
             [
+                "killall java || true",
                 "rm -rf ~/election",
                 "mkdir -p ~/election",
                 "cd ~/election",
@@ -110,14 +178,14 @@ def main():
         )
     communicate_all(vms)
 
-    scp(f"orestis@{vms[0].ip}:~/election/publicKey", "publicKey", override=True)
+    scp(f"{args.username}@{vms[0].ip}:~/election/publicKey", "publicKey", override=True)
 
     input("Waiting for ciphertexts: ")
     # Or, genarate the ciphertexts with vmnd:
     # subprocess.run(["vmnd", "-ciphs", "publicKey", "130", "ciphertexts"], check=True)
 
     for vm in vms:
-        scp("ciphertexts", f"orestis@{vm.ip}:~/election/ciphertexts")
+        scp("ciphertexts", f"{args.username}@{vm.ip}:~/election/ciphertexts")
         vm.ssh_call(
             [
                 "cd ~/election",
@@ -126,23 +194,33 @@ def main():
             ]
         )
     communicate_all(vms)
-    scp(f"orestis@{vms[0].ip}:~/election/plaintexts", "plaintexts", override=True)
+    scp(
+        f"{args.username}@{vms[0].ip}:~/election/plaintexts",
+        "plaintexts",
+        override=True,
+    )
 
     return 0
 
 
-def azure_call(cmd):
+def azure_call(cmd, container):
     return subprocess.check_output(
-        ["docker", "exec", CONTAINER] + cmd.split(" ")
+        ["docker", "exec", container] + cmd.split(" ")
     ).decode()
 
 
-def ssh_call(ip, cmds):
+def ssh_call(ip, username, cmds):
     if isinstance(cmds, str):
         cmds = [cmds]
     print(cmds)
     return subprocess.Popen(
-        ["ssh", "-o", "StrictHostKeyChecking no", f"orestis@{ip}", " && ".join(cmds)],
+        [
+            "ssh",
+            "-o",
+            "StrictHostKeyChecking no",
+            f"{username}@{ip}",
+            " && ".join(cmds),
+        ],
         stdout=subprocess.PIPE,
     )
 
@@ -161,4 +239,4 @@ def communicate_all(iterable):
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main(parse_args()))
