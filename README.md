@@ -1,6 +1,10 @@
 # trustfull-demonstrator
 
-Code for the demonstrator of the Trustfull project
+Code for the demonstrator of the Trustfull project.
+
+This repository contains:
+- Under [`webdemo/`](webdemo/) the code for the vote collecting server hosted at <https://vmn-webapp.azurewebsites.net/>.
+- Under [`scripts/`](scripts/) scripts to orchestrate a demo election from your terminal.
 
 ## Instructions
 
