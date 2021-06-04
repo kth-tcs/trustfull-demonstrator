@@ -2,8 +2,12 @@
 import argparse
 import json
 import os
+import shlex
+import string
 import subprocess
 import sys
+from collections import Counter
+from collections.abc import Sequence
 from urllib.parse import urljoin
 
 import requests
@@ -28,8 +32,9 @@ class VirtualMachine:
         self.idx = idx
         hostname = "0.0.0.0"
         http = self.args.port_http
+        protocol = "http"
         udp = self.args.port_udp
-        return f"vmni -party -name party{idx} -http http://{self.ip}:{http} -httpl http://{hostname}:{http} -hint {self.ip}:{udp} -hintl {hostname}:{udp} stub.xml -dir {idx}/dir {idx}/privInfo.xml {idx}/protInfo.xml"
+        return f"vmni -party -name party{idx} -http {protocol}://{self.ip}:{http} -httpl {protocol}://{hostname}:{http} -hint {self.ip}:{udp} -hintl {hostname}:{udp} stub.xml -dir {idx}/dir {idx}/privInfo.xml {idx}/protInfo.xml"
 
     def ssh_call(self, cmds):
         self.communicate()
@@ -75,6 +80,7 @@ class VirtualMachine:
 
 def parse_args():
     parser = argparse.ArgumentParser()
+    # Globals
     parser.add_argument(
         "--container",
         default="azure-cli",
@@ -102,50 +108,57 @@ def parse_args():
         help="Azure resource group to use",
     )
     parser.add_argument(
+        "--vote-collecting-server",
+        default="https://vmn-webapp.azurewebsites.net/",
+        help="Where to POST the public key and GET the ciphertexts from",
+        dest="server",
+    )
+
+    # Subparsers
+    subparsers = parser.add_subparsers(dest="subparser_name", required=True)
+    deploy_parser = subparsers.add_parser("deploy")
+    start_election_parser = subparsers.add_parser("start")
+    tally_election_parser = subparsers.add_parser("tally")
+    stop_parser = subparsers.add_parser("stop")
+
+    # Start election
+    start_election_parser.add_argument(
         "--port_http",
         default=8042,
         help="VMN http port",
         metavar="PORT",
         type=int,
     )
-    parser.add_argument(
+    start_election_parser.add_argument(
         "--port_udp",
         default=4042,
         help="VMN udp port",
         metavar="PORT",
         type=int,
     )
-    parser.add_argument(
-        "--server",
-        default="https://vmn-webapp.azurewebsites.net/",
-        help="Where to POST the public key and GET the ciphertexts from",
+
+    # Tally election
+    tally_election_parser.add_argument(
+        "--file",
+        default="plaintexts",
+        help="Plaintexts file as produced by vmn",
     )
 
     return parser.parse_args()
 
 
 def main(args):
-    if args.login:
-        subprocess.run(
-            ["docker", "rm", "-f", args.container],
-            check=False,
-            stderr=subprocess.DEVNULL,
-        )
-        subprocess.run(
-            [
-                "docker",
-                "run",
-                "-it",
-                "--name",
-                args.container,
-                "mcr.microsoft.com/azure-cli",
-                "az",
-                "login",
-            ],
-            check=True,
-        )
+    return globals()[f"{args.subparser_name}_main"](args)
 
-    subprocess.call(["docker", "start", args.container], stdout=subprocess.DEVNULL)
+
+def deploy_main(args):
+    print(args)
+    raise NotImplementedError()
+
+
+def start_main(args):
+    start_docker(args)
+
     vms = json.loads(azure_call(f"az vm list -g {args.group}", args.container))
     vms = [
         VirtualMachine(vm, args)
@@ -223,10 +236,22 @@ def main(args):
     return 0
 
 
-def azure_call(cmd, container):
-    return subprocess.check_output(
-        ["docker", "exec", container] + cmd.split(" ")
-    ).decode()
+def tally_main(args):
+    if not os.path.exists(args.file):
+        raise RuntimeError("File not found")
+    vbt_json = vbt(args.file)
+    print(vbt_json)
+    r = requests.post(urljoin(args.server, "results"), json=vbt_json)
+    if r.ok:
+        return 0
+
+    error(r.status_code, r.text)
+    return 1
+
+
+def stop_main(args):
+    print(args)
+    raise NotImplementedError()
 
 
 def ssh_call(ip, username, cmds):
@@ -256,6 +281,100 @@ def scp(src, dest, override=False):
 
 def communicate_all(iterable):
     return [x.communicate() for x in iterable]
+
+
+def start_docker(args):
+    if args.login:
+        login(args)
+
+    ret = subprocess.call(
+        ["docker", "start", args.container], stdout=subprocess.DEVNULL
+    )
+    if ret != 0:
+        error(
+            f"Starting docker container {args.container} failed.",
+            "Did you setup the container with --login first?",
+        )
+        sys.exit(ret)
+
+
+def login(args):
+    subprocess.run(
+        ["docker", "rm", "-f", args.container],
+        check=False,
+        stderr=subprocess.DEVNULL,
+    )
+    subprocess.run(
+        [
+            "docker",
+            "run",
+            "-it",
+            "--name",
+            args.container,
+            "mcr.microsoft.com/azure-cli",
+            "az",
+            "login",
+        ],
+        check=True,
+    )
+
+
+def azure_call(cmd, container, **kwargs):
+    if isinstance(cmd, str):
+        cmd = shlex.split(cmd)
+    elif not isinstance(cmd, Sequence):
+        raise TypeError(f"cmd should be some type of Sequence, got {type(cmd)} instead")
+
+    return subprocess.check_output(
+        ["docker", "exec", container] + list(cmd), **kwargs
+    ).decode()
+
+
+def error(*args, **kwargs):
+    kwargs.setdefault("file", sys.stderr)
+    args = list(args)
+    args[0] = "\033[91m" + args[0]  # Red
+    args[-1] += "\033[0m"  # Reset
+    print(*args, **kwargs)
+
+
+def vbt(fname):
+    valid_chars = " -_.,()" + string.ascii_letters + string.digits
+
+    return Counter(
+        map(
+            lambda x: "".join(
+                # Plaintexts is a byte tree with N children where each child is
+                # a byte tree with 2 children. The first of the inner children
+                # is the vote in ASCII bytes.
+                c
+                for c in map(chr, bytes.fromhex(x[0]))
+                if c in valid_chars
+            ),
+            _check_output_vbt(fname),
+        )
+    )
+
+
+def _check_output_vbt(fname):
+    command = ["vbt"]
+
+    # vbt converts the RAW plaintexts to JSON.
+    return json.loads(
+        # Read output from vbt but discard null bytes
+        # See: https://github.com/verificatum/verificatum-vcr/pull/4
+        bytes(
+            filter(
+                bool,
+                subprocess.check_output(
+                    command
+                    + [
+                        fname,
+                    ]
+                ),
+            )
+        ).decode()
+    )
 
 
 if __name__ == "__main__":
