@@ -5,6 +5,7 @@ TODO: one paragraph of context: what's the goal of the demonstrator? what is thi
 Code for the demonstrator of the [Trustfull project](trustfull.proj.kth.se/).
 
 This repository contains:
+
 - Under [`webdemo/`](webdemo/) the code for the vote collecting server.
 - Under [`scripts/`](scripts/) scripts to orchestrate a demo election from your terminal.
 
@@ -12,48 +13,63 @@ The current version of the web app for e-voting front-end is hosted at <https://
 
 ## Instructions for running an election
 
+Script [`scripts/demo.py`](scripts/demo.py) is used to deploy Verificatum across `N` Azure machines. The script accepts
+one positional argument that specifies the command to perform. Full usage is:
+
+```text
+usage: demo.py [-h] [--container NAME] [--login] [--username USERNAME]
+               [--group GROUP] [--name NAME]
+               {deploy,start,tally,stop} ...
+
+positional arguments:
+  {deploy,start,tally,stop}
+    deploy              Deploy Azure servers and install verificatum
+    start               Start election
+    tally               Collect and tally election results
+    stop                Deallocate Azure servers
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --container NAME      Logged-in azure-cli docker container. Setup using
+                        --login
+  --login               Initialize azure-cli container and login
+  --username USERNAME   User used to ssh to servers
+  --group GROUP         Azure resource group to use
+  --name NAME           Naming pattern to use for Azure resources. Affects the
+                        resource tag and server names
+```
+
+The first time you call the script, you'll need to use the `--login` flag to set up the Azure cli docker container on
+your machine. Follow the instructions to log in Azure through the KTH SSO. You will need to use `<username>@ug.kth.se`
+as your username.
+
 ### Deploying the server-side back-end machines
 
-#### 1. Create a network security group
+Use the `deploy` subcommand of [`scripts/demo.py`](scripts/demo.py). Complete usage is:
 
-In order to allow all ports required by Verificatum, we can create a new "Network Security Group" that specifies the security rules we need.
+```text
+usage: demo.py deploy [-h] [--count N] [--delete] [--ssh-key KEY]
+                      [--image IMAGE] [--size SIZE] [--port_http PORT]
+                      [--port_udp PORT]
 
-From Azure's home go to `Create a resource` and search for `network security group`. Type a name and press create it.
-![Network Security Group](https://raw.githubusercontent.com/kth-tcs/trustfull-demonstrator/media/1-1-network-security-group.png)
-
-From the newly created Network Security Group's dashboard, go to `Inbound security rules` and add these rules:
-
-1. The SSH service ![SSH service](https://raw.githubusercontent.com/kth-tcs/trustfull-demonstrator/media/1-2-ssh.png)
-2. Add ports for TCP traffic. This script uses port `8042`. ![TCP
-   rule](https://raw.githubusercontent.com/kth-tcs/trustfull-demonstrator/media/1-3-tcp.png)
-3. Add ports for UDP traffic. This script uses port `4042`. ![UDP
-   rule](https://raw.githubusercontent.com/kth-tcs/trustfull-demonstrator/media/1-4-udp.png)
-
-#### 2. Create N virtual machines
-
-TODO write and document a script for "Repeat `N` times."
-
-From Azure's home go to `Create a resource` and select `Ubuntu Server` (preferably 18.04).
-
-In the `Basics` tab, under `Administrator account` select `Use existing public key` and paste a public key created with
-`ssh-keygen`. Re-use the same public key across all virtual machines.
-![Configure public key](https://raw.githubusercontent.com/kth-tcs/trustfull-demonstrator/media/2-1-public-key.png)
-
-**Important!** make sure that all servers' names start with a unique prefix, e.g. `vmn`.
-
-In the `Networking` tab, make sure to select the network security group.
-![Configure network security group](https://raw.githubusercontent.com/kth-tcs/trustfull-demonstrator/media/2-2-networking-select.png)
-
-#### 3. Download and Compile Verificatum
-
-TODO: explain what the script does, explain the requirements on the machine (apt-get/docker) to do that.
-
-After the resource is created, connect via ssh, copy [`install_server.sh`](./scripts/install_server.sh) to the server
-and execute it.
+optional arguments:
+  -h, --help        show this help message and exit
+  --count N, -n N   Amount of virtual machines to create
+  --delete          Delete existing resources with given tag before creating
+                    new ones
+  --ssh-key KEY     Public key to use for ssh login
+  --image IMAGE     The name of the operating system image. See `az vm create
+                    --help` for more
+  --size SIZE       The VM size to be created. See `az vm create --help` for
+                    more
+  --port_http PORT  VMN http port
+  --port_udp PORT   VMN udp port
+```
 
 ### Create the front-end web app for the vote collecting server
 
 TODO: document language/libraries/architecture of the front end web-app.
+TODO: Do this through `demo.py deploy`
 
 From Azure's home go to `Create a resource` and select `Web App`.
 
@@ -84,65 +100,62 @@ username-password pair under the `Local Git credentials` tab. For more options, 
 
 TODO: one paragraph of context/explanation
 
-TODO explain that we have to call "azure-ssh.py --login" (or explicit error message)
-
-TODO document Azure/SSO xxx@ug.kth.se
-
 TODO document the requirements on the SSH private key, we push the gpg-encrypted private key to the repo, encrypted with all keys at once (only one required for de
 <https://www.monperrus.net/martin/martin-monperrus.public.asc>
 
 First, install all requirements with `pip install -r scripts/requirements.txt`.
 
-The script [`scripts/azure-ssh.py`](scripts/azure-ssh.py) orchestrates the voting process across the created Azure servers. Its options are:
-
-TODO split and rename script, see <https://github.com/kth-tcs/trustfull-demonstrator/issues/1>
+The subcommand `start` of [`scripts/demo.py`](scripts/demo.py) initializes the voting process across the created Azure servers. Its options are:
 
 ```text
-usage: azure-ssh.py [-h] [--container NAME] [--login] [--prefix PREFIX]
-                    [--username USERNAME] [--group GROUP] [--port_http PORT]
-                    [--port_udp PORT] [--server SERVER]
+usage: demo.py start [-h] [--port_http PORT] [--port_udp PORT]
+                     [--vote-collecting-server SERVER]
 
 optional arguments:
-  -h, --help           show this help message and exit
-  --container NAME     Logged-in azure-cli docker container. Setup using
-                       --login
-  --login              Initialize azure-cli container and login
-  --prefix PREFIX      Azure server names start with this prefix string
-  --username USERNAME  User used to ssh to servers
-  --group GROUP        Azure resource group to use
-  --port_http PORT     VMN http port
-  --port_udp PORT      VMN udp port
-  --server SERVER      The vote collecting server where to POST the public key and GET the ciphertexts
-                       from (domain name or IP address)
+  -h, --help            show this help message and exit
+  --port_http PORT      VMN http port
+  --port_udp PORT       VMN udp port
+  --vote-collecting-server SERVER
+                        Address of vote collecting server where the script
+                        POSTs the public key and GETs the ciphertexts
 ```
-
-Before running, make sure all servers that start with the `vmn*` (default) prefix, are running.
-
-On the first execution, use the `--login` flag to initialize the docker container used to connect to the Azure services
-through the cli.
 
 Once the mix network has produced the public key, the script pushes it to the vote collecting server. Once prompted, go
 to <https://vmn-webapp.azurewebsites.net/> and proceed with the election.
 
 ### Collecting the votes for the tallying
 
-TODO merge scripts `tally-election-on-azure.py` and `scripts/vbt_tally.py` and update doc
+The subcommand `tally` of [`scripts/demo.py`](scripts/demo.py) will first get the ciphertexts from the vote collecting
+servers and proceed to upload them to the mix network which will finally jointly decode them. Finally, it will upload
+the results to <https://vmn-webapp.azurewebsites.net/results> (by default). Usage:
 
-The script `tally-election-on-azure.py` will first get the ciphertexts from the vote collecting servers and proceed to
-upload them to the mix network which will finally jointly decode them.
+```text
+usage: demo.py tally [-h] [--vote-collecting-server SERVER] [--file FILE]
 
-The plaintexts can be decoded with the script [`scripts/vbt_tally.py`](script/vbt_tally.py) which will also upload the
-results to <https://vmn-webapp.azurewebsites.net/results> (by default).
+optional arguments:
+  -h, --help            show this help message and exit
+  --vote-collecting-server SERVER
+                        Address of vote collecting server where the script
+                        POSTs the public key and GETs the ciphertexts
+  --file FILE           Plaintexts file as produced by vmn
+```
 
 TODO: explain how to run the standalone verifier and understand the input/output
 
 ### Shutting down all servers
 
-TODO
-
 In order to avoid unnecessary charges on Azure, it is important to shut down all servers.
 
-This can be done with script XXXXX which shuts down `vmn*` servers.
+This can be done with the `stop` subcommand of [`scripts/demo.py`](scripts/demo.py). Optionally, the `--delete` flag
+can be used to completely delete the resources, including disks and IPs. Usage:
+
+```text
+usage: demo.py stop [-h] [--delete]
+
+optional arguments:
+  -h, --help  show this help message and exit
+  --delete    Delete resources with given tag instead of just stopping them
+```
 
 ## Diversification of the election code
 
