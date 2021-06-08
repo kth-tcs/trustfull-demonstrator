@@ -45,7 +45,7 @@ optional arguments:
 
 The first time you call the script, you'll need to use the `--login` flag to set up the Azure cli docker container on
 your machine. Follow the instructions to log in Azure through the KTH SSO. You will need to use `<username>@ug.kth.se`
-as your username.
+as your username. The user has to be member of a billable resource group (eg the Trustfull resource group "tcs").
 
 ### Deploying the server-side back-end machines
 
