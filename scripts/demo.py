@@ -13,10 +13,18 @@ from urllib.parse import urljoin
 
 
 def error(*args, **kwargs):
+    print_color("\033[91m", *args, **kwargs)  # Red
+
+
+def info(*args, **kwargs):
+    print_color("\033[33m", *args, **kwargs)  # Red
+
+
+def print_color(color, *args, **kwargs):
     kwargs.setdefault("file", sys.stderr)
     args = list(args)
-    args[0] = "\033[91m" + args[0]  # Red
-    args[-1] += "\033[0m"  # Reset
+    args[0] = color + str(args[0])
+    args[-1] = str(args[-1]) + "\033[0m"  # Reset
     print(*args, **kwargs)
 
 
@@ -256,7 +264,7 @@ def deploy_main(args):
 
     with Pool(args.count) as p:
         for res in p.imap_unordered(azure_install_server, vms):
-            print(res)
+            info(res)
 
     # TODO: create web app
 
@@ -388,7 +396,7 @@ def ssh_call(ip, username, cmds, **kwargs):
     if isinstance(cmds, str):
         cmds = [cmds]
     # kwargs.setdefault("stdout", subprocess.PIPE)
-    print("Running ssh commands", cmds, file=sys.stderr)
+    info("Running ssh commands", cmds)
     return subprocess.Popen(
         [
             "ssh",
@@ -452,7 +460,7 @@ def azure_call(cmd, container, **kwargs):
     elif not isinstance(cmd, Sequence):
         raise TypeError(f"cmd should be some type of Sequence, got {type(cmd)} instead")
 
-    print("Running azure command", cmd, file=sys.stderr)
+    info("Running azure command", cmd)
     return subprocess.check_output(
         ["docker", "exec", container] + list(cmd), **kwargs
     ).decode()
