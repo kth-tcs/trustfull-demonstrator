@@ -14,7 +14,11 @@ The current version of the web app for e-voting front-end is hosted at <https://
 ## Instructions for running an election
 
 Script [`scripts/demo.py`](scripts/demo.py) is used to deploy Verificatum across `N` Azure machines. The script accepts
-one positional argument that specifies the command to perform. Full usage is:
+one positional argument that specifies the command to perform.
+
+Before running, install all requirements with `pip install -r scripts/requirements.txt`.
+
+General usage is:
 
 ```text
 usage: demo.py [-h] [--container NAME] [--login] [--username USERNAME]
@@ -66,6 +70,11 @@ optional arguments:
   --port_udp PORT   VMN udp port
 ```
 
+The script will need to ssh to the created servers to install all dependencies. To do that, you need the corresponding
+private key. There is a gpg-encrypted private key under [`scripts/azure_vmn.gpg`](scripts/azure_vmn.gpg). It can be
+decrypted with `gpg --decrypt scripts/azure_vmn.gpg 1>~/.ssh/azure_vmn`. Otherwise, specify your own public key with
+the `--ssh-key` flag.
+
 ### Create the front-end web app for the vote collecting server
 
 TODO: document language/libraries/architecture of the front end web-app.
@@ -96,14 +105,9 @@ push your copy to that remote and the web app at <https://vmn-webapp.azurewebsit
 username-password pair under the `Local Git credentials` tab. For more options, read
 <https://docs.microsoft.com/en-us/azure/app-service/deploy-configure-credentials>.
 
-### Deploying the mixnet, spawning the mixnet node JVMs
+### Starting the election process
 
 TODO: one paragraph of context/explanation
-
-TODO document the requirements on the SSH private key, we push the gpg-encrypted private key to the repo, encrypted with all keys at once (only one required for de
-<https://www.monperrus.net/martin/martin-monperrus.public.asc>
-
-First, install all requirements with `pip install -r scripts/requirements.txt`.
 
 The subcommand `start` of [`scripts/demo.py`](scripts/demo.py) initializes the voting process across the created Azure servers. Its options are:
 
