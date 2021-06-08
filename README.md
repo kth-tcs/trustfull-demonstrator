@@ -75,38 +75,9 @@ private key. There is a gpg-encrypted private key under [`scripts/azure_vmn.gpg`
 decrypted with `gpg --decrypt scripts/azure_vmn.gpg 1>~/.ssh/azure_vmn`. Otherwise, specify your own public key with
 the `--ssh-key` flag.
 
-### Create the front-end web app for the vote collecting server
-
-TODO: document language/libraries/architecture of the front end web-app.
-TODO: Do this through `demo.py deploy`
-
-From Azure's home go to `Create a resource` and select `Web App`.
-
-Under the `Runtime stack` select a python 3.x version.
-
-![Web app options](https://raw.githubusercontent.com/kth-tcs/trustfull-demonstrator/media/3-1-basics.png)
-
-Once the resource is created, go to it's `Configuration` tab and modify the `Startup Command` field with
-`gunicorn webdemo.app:app > /tmp/gunicorn.mylogs`.
-
-![Startup command](https://raw.githubusercontent.com/kth-tcs/trustfull-demonstrator/media/3-2-startup-command.png)
-
-Now the vote collecting server is up and running.
-
-#### Deploying or Updating the frontend code running on Azure
-
-Then, go to its `Deployment Center` tab and add this repository as the source via
-the `Local Git` option in Azure.
-
-![Deployment center](https://raw.githubusercontent.com/kth-tcs/trustfull-demonstrator/media/3-3-deployment-center.png)
-
-When using the `Local Git` option, copy the given URL and add it as a remote to your local copy of the repo. Finally,
-push your copy to that remote and the web app at <https://vmn-webapp.azurewebsites.net/> should be up / updated. You will be prompted for a password, there is a
-username-password pair under the `Local Git credentials` tab. For more options, read
-<https://docs.microsoft.com/en-us/azure/app-service/deploy-configure-credentials>.
-
 ### Starting the election process
 
+TODO: document language/libraries/architecture of the front end web-app.
 TODO: one paragraph of context/explanation
 
 The subcommand `start` of [`scripts/demo.py`](scripts/demo.py) initializes the voting process across the created Azure servers. Its options are:

@@ -185,6 +185,12 @@ def parse_args():
         default="Standard_B2s",
         help="The VM size to be created. See `az vm create --help` for more",
     )
+    deploy_parser.add_argument(
+        "--webapp-plan-tier",
+        default="F1",
+        help="Which pricing tier to use for the webapp plan. See `az appservice plan create --help` for a list",
+        metavar="CODE",
+    )
 
     # Deploy / Start
     multi_add_argument(
@@ -242,6 +248,8 @@ def deploy_main(args):
         if resources:
             azure_delete(resources, args.container)
 
+    azure_create_webapp(args)
+
     azure_create_nsg(args)
     names = [args.name + str(idx) for idx in range(1, 1 + args.count)]
     # Create VMs in the background
@@ -258,8 +266,6 @@ def deploy_main(args):
     with Pool(args.count) as p:
         for res in p.imap_unordered(azure_install_server, vms):
             info(res)
-
-    # TODO: create web app
 
 
 def start_main(args):
@@ -361,7 +367,9 @@ def require_requests():
 def get_vms(args, start=True):
     vms = azure_vms_by_tag(args)
     if not vms:
-        raise RuntimeError(f"No VMs found with tag `{args.tag}`, did you forget to deploy?")
+        raise RuntimeError(
+            f"No VMs found with tag `{args.tag}`, did you forget to deploy?"
+        )
     if start:
         azure_start(vms, args.container)
     return [
@@ -488,6 +496,56 @@ def azure_create_vm(name, args):
             "Standard_LRS",
             "--verbose",
             "--no-wait",
+        ],
+        args.container,
+    )
+
+
+def azure_create_webapp(args):
+    name = args.name + "-webapp"
+    service_plan = name + "-plan"
+
+    azure_call(
+        [
+            "az",
+            "appservice",
+            "plan",
+            "create",
+            "--tags",
+            args.tag,
+            "--sku",
+            "F1",
+            "--location",
+            "northeurope",
+            "--is-linux",
+            "-g",
+            args.group,
+            "--name",
+            service_plan,
+        ],
+        args.container,
+    )
+
+    return azure_call(
+        [
+            "az",
+            "webapp",
+            "create",
+            "--name",
+            name,
+            "-g",
+            args.group,
+            "--tags",
+            args.tag,
+            "--deployment-source-url",
+            "https://github.com/kth-tcs/trustfull-demonstrator/",
+            "--runtime",
+            "python|3.8",
+            "--plan",
+            service_plan,
+            "--startup-file",
+            "gunicorn webdemo.app:app > /tmp/gunicorn.mylogs",
+            "--verbose",
         ],
         args.container,
     )
