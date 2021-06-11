@@ -213,13 +213,6 @@ def parse_args():
         dest="server",
     )
 
-    # Tally
-    tally_election_parser.add_argument(
-        "--file",
-        default="plaintexts",
-        help="Plaintexts file as produced by vmn",
-    )
-
     # Stop
     stop_parser.add_argument(
         "--delete",
@@ -347,10 +340,9 @@ def tally_main(args):
         "plaintexts",
         override=True,
     )
+    assert os.path.exists("plaintexts")
 
-    if not os.path.exists(args.file):
-        raise RuntimeError("File not found")
-    vbt_json = vbt(args.file)
+    vbt_json = vbt("plaintexts")
     print(vbt_json)
     r = requests.post(urljoin(args.server, "results"), json=vbt_json)
     if r.ok:

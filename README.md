@@ -134,14 +134,13 @@ servers and proceed to upload them to the mix network which will finally jointly
 the results to <https://vmn-webapp.azurewebsites.net/results> (by default). Usage:
 
 ```text
-usage: demo.py tally [-h] [--vote-collecting-server SERVER] [--file FILE]
+usage: demo.py tally [-h] [--vote-collecting-server SERVER]
 
 optional arguments:
   -h, --help            show this help message and exit
   --vote-collecting-server SERVER
                         Address of vote collecting server where the script
                         POSTs the public key and GETs the ciphertexts
-  --file FILE           Plaintexts file as produced by vmn
 ```
 
 TODO: explain how to run the standalone verifier and understand the input/output
