@@ -1,8 +1,10 @@
 # The e-voting demonstrator of project Trustfull
 
-TODO: one paragraph of context: what's the goal of the demonstrator? what is this?
+This is the source code for the demonstrator of the [Trustfull project](trustfull.proj.kth.se/). Its goal is to
+showcase the research techniques developed by the members of Trustfull team.
 
-Code for the demonstrator of the [Trustfull project](trustfull.proj.kth.se/).
+The demonstrator deploys the [Verificatum](https://www.verificatum.org/) mix network on servers distributed on the
+Azure cloud platform and includes a vote collecting server front-end where users can vote.
 
 This repository contains:
 
