@@ -73,7 +73,8 @@ class VirtualMachine:
         p = self._last_p
         self._last_p = None
         if p is not None:
-            return p.communicate()
+            ret = p.communicate()
+            return p.returncode, *ret
         return None
 
     def get_prot_info(self):
@@ -345,11 +346,26 @@ def tally_main(args):
     vbt_json = vbt("plaintexts")
     print(vbt_json)
     r = requests.post(urljoin(args.server, "results"), json=vbt_json)
-    if r.ok:
-        return 0
+    r.raise_for_status()
 
-    error(r.status_code, r.text)
-    return 1
+    # Verify
+    for vm in vms:
+        vm.ssh_call(
+            [
+                "cd ~/election",
+                'export _JAVA_OPTIONS="-Djava.net.preferIPv4Stack=true"',
+                "rm -rf /tmp/proof",
+                "mkdir /tmp/proof",
+                f"vmnv -sloppy -v -v -e -wd /tmp/proof -a file ~/election/merged.xml $HOME/election/[0-9]*/dir/nizkp/default",
+            ]
+        )
+    ret = 0
+    for vm in vms:
+        code, _, _ = vm.communicate()
+        if code != 0:
+            error(vm.ip, "proof failed")
+            ret = code
+    return ret
 
 
 def require_requests():
