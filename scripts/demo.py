@@ -361,7 +361,9 @@ def require_requests():
 def get_vms(args, start=True):
     vms = azure_vms_by_tag(args)
     if not vms:
-        raise RuntimeError(f"No VMs found with tag `{args.tag}`, did you forget to deploy?")
+        raise RuntimeError(
+            f"No VMs found with tag `{args.tag}`, did you forget to deploy?"
+        )
     if start:
         azure_start(vms, args.container)
     return [
