@@ -135,12 +135,21 @@ the results to <https://vmn-webapp.azurewebsites.net/results> (by default). Usag
 
 ```text
 usage: demo.py tally [-h] [--vote-collecting-server SERVER]
+                     [--use-bytetree-parser | --use-vbt | --skip-plaintexts]
 
 optional arguments:
   -h, --help            show this help message and exit
   --vote-collecting-server SERVER
                         Address of vote collecting server where the script
                         POSTs the public key and GETs the ciphertexts
+  --use-bytetree-parser
+                        Use bytetree.py to parse plaintexts. File must be
+                        located in directory '../webdemo/' relative to this
+                        script's location
+  --use-vbt             Use `vbt` to parse plaintexts. Must be available in
+                        $PATH
+  --skip-plaintexts     Do not parse the plaintexts and do not upload them to
+                        the results page
 ```
 
 ### Shutting down all servers

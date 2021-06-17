@@ -36,6 +36,8 @@ except ImportError:
         "Python library `requests` is not installed, commands `start` and `tally` will not work."
     )
 
+BYTETREE_PATH = "../webdemo/"
+
 
 class VirtualMachine:
     def __init__(self, vm_id, args):
@@ -214,6 +216,26 @@ def parse_args():
         dest="server",
     )
 
+    # Tally
+    g = tally_election_parser.add_mutually_exclusive_group()
+    g.add_argument(
+        "--use-bytetree-parser",
+        action="store_true",
+        help=f"Use bytetree.py to parse plaintexts. File must be located in directory '{BYTETREE_PATH}' relative to this script's location",
+        dest="bytetree",
+    )
+    g.add_argument(
+        "--use-vbt",
+        action="store_true",
+        dest="vbt",
+        help="Use `vbt` to parse plaintexts. Must be available in $PATH",
+    )
+    g.add_argument(
+        "--skip-plaintexts",
+        action="store_true",
+        help="Do not parse the plaintexts and do not upload them to the results page",
+    )
+
     # Stop
     stop_parser.add_argument(
         "--delete",
@@ -316,6 +338,13 @@ def start_main(args):
 def tally_main(args):
     require_requests()
 
+    vbt_call = None
+    if args.bytetree:
+        vbt_call = import_bytetree()
+    elif not args.skip_plaintexts:
+        args.use_vbt = True
+        vbt_call = _check_output_vbt
+
     with open("ciphertexts", "wb") as f:
         r = requests.get(urljoin(args.server, "ciphertexts"))
         r.raise_for_status()
@@ -343,10 +372,11 @@ def tally_main(args):
     )
     assert os.path.exists("plaintexts")
 
-    vbt_json = vbt("plaintexts")
-    print(vbt_json)
-    r = requests.post(urljoin(args.server, "results"), json=vbt_json)
-    r.raise_for_status()
+    if vbt_call is not None:
+        vbt_json = vbt_count("plaintexts", vbt_call)
+        print(vbt_json)
+        r = requests.post(urljoin(args.server, "results"), json=vbt_json)
+        r.raise_for_status()
 
     # Verify
     for vm in vms:
@@ -372,6 +402,22 @@ def require_requests():
     if not requests:
         error("This command is not supported because `requests` is not installed.")
         sys.exit(1)
+
+
+def import_bytetree():
+    path = os.path.join(os.path.dirname(os.path.realpath(__file__)), BYTETREE_PATH)
+    try:
+        sys.path.append(path)
+        from bytetree import byte_array_byte_tree_to_json
+
+        def vbt_call(fname):
+            with open(fname, "rb") as f:
+                return json.loads(byte_array_byte_tree_to_json(bytearray(f.read())))
+
+        return vbt_call
+    except ImportError as e:
+        error(f"Could not load bytetree.py that should have been located in {path}")
+        raise e
 
 
 def get_vms(args, start=True):
@@ -663,7 +709,7 @@ def azure_install_server(vm):
     return p.communicate(input=INSTALL_SCRIPT)
 
 
-def vbt(fname):
+def vbt_count(fname, vbt_call):
     valid_chars = " -_.,()" + string.ascii_letters + string.digits
 
     return Counter(
@@ -676,7 +722,7 @@ def vbt(fname):
                 for c in map(chr, bytes.fromhex(x[0]))
                 if c in valid_chars
             ),
-            _check_output_vbt(fname),
+            vbt_call(fname),
         )
     )
 
