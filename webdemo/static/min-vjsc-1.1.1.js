@@ -28,7 +28,7 @@ var memory;
 if (typeof require !== "undefined") {
     const fs = require('fs');
     const instance = new WebAssembly.Instance(new
-        WebAssembly.Module(fs.readFileSync("./wasm/optimized.wasm")), {env: {}}
+        WebAssembly.Module(fs.readFileSync("./wasm/muladd.wasm")), {env: {}}
     );
     wasm_muladd_loop = instance.exports.muladd_loop;
     const offset = instance.exports.get_buffer();
