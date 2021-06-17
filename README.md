@@ -143,8 +143,6 @@ optional arguments:
                         POSTs the public key and GETs the ciphertexts
 ```
 
-TODO: explain how to run the standalone verifier and understand the input/output
-
 ### Shutting down all servers
 
 In order to avoid unnecessary charges on Azure, it is important to shut down all servers.
