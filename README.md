@@ -111,9 +111,11 @@ specify its public key with the `--ssh-key` flag.
 
 ### Starting the election process
 
-TODO: one paragraph of context/explanation
+The subcommand `start` of [`scripts/demo.py`](scripts/demo.py) initializes the voting process across the created Azure
+servers. This involves booting the servers, creating the verificatum protocol files, producing the public key and
+uploading it to the vote collecting server front-end.
 
-The subcommand `start` of [`scripts/demo.py`](scripts/demo.py) initializes the voting process across the created Azure servers. Its options are:
+Its options are:
 
 ```text
 usage: demo.py start [-h] [--port_http PORT] [--port_udp PORT]
