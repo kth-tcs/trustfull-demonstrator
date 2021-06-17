@@ -13,6 +13,30 @@ This repository contains:
 
 The current version of the web app for e-voting front-end is hosted at <https://vmn-webapp.azurewebsites.net/> (see instructions for updating this URL below).
 
+## Overview
+
+The general overview of the voting process is as follows:
+
+1. The mix network servers (nodes) are defined, each server runs one instance of verificatum and produces its protocol
+   file.
+2. The protocol files are shared between all nodes, the mix network jointly produces the public key.
+3. The public key is shared with the vote collecting server.
+4. Users vote on the vote collecting server, their votes are encrypted on the client side using the public key produced
+   at step 3. The vote collecting server never sees a user's unencrypted vote.
+5. Once the voting is done, the ciphertexts of the encrypted votes are shared to all nodes. The nodes jointly decrypt
+   and shuffle the votes. Once all plaintexts are retrieved, it is impossible to trace a decrypted vote to its original
+   voter.
+6. The verifier confirms the overall correctness of the execution using the intermediate results.
+
+Steps 1-3 and 5-6 are implemented using the orchestrator script, [`scripts/demo.py`](scripts/demo.py). See the
+instructions for running this script below.
+
+Step 4 is implemented by the vote collecting server under [`webdemo/`](webdemo/). This is a python web app which is
+based on the [Flask](https://flask.palletsprojects.com/) web framework. The app serves the landing page which uses the
+[Verificatum JavaScript Cryptography Library (VJSC)](https://github.com/verificatum/verificatum-vjsc). After a user
+selects a candidate and presses the "Vote" button, the `encrypt` function is triggered which encrypts the vote using
+VJSC before it is send to the server.
+
 ## Instructions for running an election
 
 Script [`scripts/demo.py`](scripts/demo.py) is used to deploy Verificatum across `N` Azure machines. The script accepts
@@ -87,7 +111,6 @@ specify its public key with the `--ssh-key` flag.
 
 ### Starting the election process
 
-TODO: document language/libraries/architecture of the front end web-app.
 TODO: one paragraph of context/explanation
 
 The subcommand `start` of [`scripts/demo.py`](scripts/demo.py) initializes the voting process across the created Azure servers. Its options are:
