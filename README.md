@@ -162,12 +162,35 @@ optional arguments:
 
 ## Diversification of the election code
 
-TODO explain diversification, and link to crow repo and paper
+Automatic software diversification is a moving target defense method in which different, equivalent variants of the
+same program are distributed. In the context of the web, it means distributing a different variant at each HTTP
+request.
+
+A part of Trustfull's research output is the [SLUMPs](https://github.com/KTH/slumps) project that is concerned with
+randomization, fuzzing and superoptimization for WebAssembly. Specifically, the [CROW](http://arxiv.org/pdf/2008.07185)
+superdiversifier is responsible for producing diverse, functionally equivalent WebAssembly modules given some C/C++
+source code.
 
 ### Diversification of muladd
 
-TODO what is mul_add, how to compile and run it
+The function `muladd_loop` is a core routine of the Verificatum JavaScript Cryptography Library. It implements a
+multiply-add operation with two lists of integers and a scalar using a specific precision. Benchmarks have revealed
+that it is one of the more computation-heavy parts of the library.
 
-### Serving diversified muladd in an election
+We have decided to port this function in C code (file [`webdemo/muladd/muladd.c`](webdemo/muladd/muladd.c)) and compile
+it to WebAssembly. With the C code, we can use CROW to produce equivalent variants of the function.
 
-TODO explain and scripts
+#### Compile C version of muladd to WebAssembly
+
+The easiest option is to build the provided docker image that installs [wasi-sdk](https://github.com/WebAssembly/wasi-sdk)
+and then use `clang` to compile [`muladd.c`](webdemo/muladd/muladd.c).
+
+```text
+cd webdemo/muladd
+docker build -t wasi .
+docker run -it --rm -u $(id -u ${USER}):$(id -g ${USER}) -v "$PWD:/workdir" -w /workdir wasi muladd.c -c -o muladd.wasm
+```
+
+See [CROW's README](https://github.com/KTH/slumps/blob/master/crow/README.md) for instructions on running the
+superdiversifier with a C file as input. The output bitcode files can be compiled with the same instruction to
+WebAssembly in order to be served from the vote collecting server.
