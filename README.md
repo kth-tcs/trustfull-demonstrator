@@ -21,8 +21,8 @@ Before running, install all requirements with `pip install -r scripts/requiremen
 General usage is:
 
 ```text
-usage: demo.py [-h] [--container NAME] [--login] [--username USERNAME]
-               [--group GROUP] [--name NAME]
+usage: demo.py [-h] [--container NAME] [--login] [--group GROUP] [--name NAME]
+               [--username USERNAME] [-i PATH]
                {deploy,start,tally,stop} ...
 
 positional arguments:
@@ -37,10 +37,14 @@ optional arguments:
   --container NAME      Logged-in azure-cli docker container. Setup using
                         --login
   --login               Initialize azure-cli container and login
-  --username USERNAME   User used to ssh to servers
   --group GROUP         Azure resource group to use
   --name NAME           Naming pattern to use for Azure resources. Affects the
                         resource tag and server names
+  --username USERNAME   Username used to ssh / scp to servers
+  -i PATH, --identity-file PATH
+                        Selects the file from which the identity (private key)
+                        for public key authentication is read. This option is
+                        directly passed to ssh & scp
 ```
 
 The first time you call the script, you'll need to use the `--login` flag to set up the Azure cli docker container on
@@ -72,9 +76,12 @@ optional arguments:
 
 The script will need to ssh to the created servers to install all dependencies. To do that, you need the corresponding
 private key. There is a gpg-encrypted private key under [`scripts/azure_vmn.gpg`](scripts/azure_vmn.gpg). It can be
-decrypted with `gpg --decrypt scripts/azure_vmn.gpg 1>~/.ssh/azure_vmn`.
-Otherwise, [create your own keypair](https://docs.microsoft.com/en-us/azure/virtual-machines/ssh-keys-portal)
-and specify its public key with the `--ssh-key` flag.
+decrypted with `gpg --decrypt scripts/azure_vmn.gpg 1>~/.ssh/azure_vmn`. If `ssh-agent` is running it should
+automatically authenticate your connection to the servers with the decrypted key. Alternatively, you can use the
+`--identity-file` flag to specify the full path to the private key you can use.
+
+You can also [create your own keypair](https://docs.microsoft.com/en-us/azure/virtual-machines/ssh-keys-portal) and
+specify its public key with the `--ssh-key` flag.
 
 ### Create the front-end web app for the vote collecting server
 

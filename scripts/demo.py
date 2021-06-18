@@ -68,7 +68,7 @@ class VirtualMachine:
 
     def ssh_call(self, cmds, **kwargs):
         self.communicate()
-        self._last_p = p = ssh_call(self.ip, self.args.username, cmds, **kwargs)
+        self._last_p = p = ssh_call(self.ip, cmds, self.args, **kwargs)
         return p
 
     def communicate(self):
@@ -124,11 +124,6 @@ def parse_args():
         help="Initialize azure-cli container and login",
     )
     parser.add_argument(
-        "--username",
-        default="vmn",
-        help="User used to ssh to servers",
-    )
-    parser.add_argument(
         "--group",
         default="tcs",
         help="Azure resource group to use",
@@ -137,6 +132,18 @@ def parse_args():
         "--name",
         default="vmn",
         help="Naming pattern to use for Azure resources. Affects the resource tag and server names",
+    )
+    parser.add_argument(
+        "--username",
+        default="vmn",
+        help="Username used to ssh / scp to servers",
+    )
+    parser.add_argument(
+        "-i",
+        "--identity-file",
+        default=None,
+        help="Selects the file from which the identity (private key) for public key authentication is read. This option is directly passed to ssh & scp",
+        metavar="PATH",
     )
 
     # Subparsers
@@ -450,17 +457,21 @@ def stop_main(args):
         azure_delete(resources, args.container)
 
 
-def ssh_call(ip, username, cmds, **kwargs):
+def ssh_call(ip, cmds, args, **kwargs):
     if isinstance(cmds, str):
         cmds = [cmds]
     # kwargs.setdefault("stdout", subprocess.PIPE)
     info("Running ssh commands", cmds)
+
+    identity_file = ["-i", args.identity_file] if args.identity_file else []
+
     return subprocess.Popen(
         [
             "ssh",
             "-o",
             "StrictHostKeyChecking no",
-            f"{username}@{ip}",
+            *identity_file,
+            f"{args.username}@{ip}",
             " && ".join(cmds),
         ],
         **kwargs,
