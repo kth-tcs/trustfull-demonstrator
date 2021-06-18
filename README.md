@@ -72,8 +72,9 @@ optional arguments:
 
 The script will need to ssh to the created servers to install all dependencies. To do that, you need the corresponding
 private key. There is a gpg-encrypted private key under [`scripts/azure_vmn.gpg`](scripts/azure_vmn.gpg). It can be
-decrypted with `gpg --decrypt scripts/azure_vmn.gpg 1>~/.ssh/azure_vmn`. Otherwise, specify your own public key with
-the `--ssh-key` flag.
+decrypted with `gpg --decrypt scripts/azure_vmn.gpg 1>~/.ssh/azure_vmn`.
+Otherwise, [create your own keypair](https://docs.microsoft.com/en-us/azure/virtual-machines/ssh-keys-portal)
+and specify its public key with the `--ssh-key` flag.
 
 ### Create the front-end web app for the vote collecting server
 
