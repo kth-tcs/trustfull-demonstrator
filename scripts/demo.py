@@ -3,6 +3,7 @@ import argparse
 import json
 import os
 import shlex
+import shutil
 import string
 import subprocess
 import sys
@@ -219,13 +220,13 @@ def parse_args():
     # Tally
     g = tally_election_parser.add_mutually_exclusive_group()
     g.add_argument(
-        "--use-bytetree-parser",
+        "--bytetree-parser",
         action="store_true",
         help=f"Use bytetree.py to parse plaintexts. File must be located in directory '{BYTETREE_PATH}' relative to this script's location",
         dest="bytetree",
     )
     g.add_argument(
-        "--use-vbt",
+        "--vbt",
         action="store_true",
         dest="vbt",
         help="Use `vbt` to parse plaintexts. Must be available in $PATH",
@@ -337,13 +338,7 @@ def start_main(args):
 
 def tally_main(args):
     require_requests()
-
-    vbt_call = None
-    if args.bytetree:
-        vbt_call = import_bytetree()
-    elif not args.skip_plaintexts:
-        args.use_vbt = True
-        vbt_call = _check_output_vbt
+    vbt_call = determine_vbt(args)
 
     with open("ciphertexts", "wb") as f:
         r = requests.get(urljoin(args.server, "ciphertexts"))
@@ -402,6 +397,28 @@ def require_requests():
     if not requests:
         error("This command is not supported because `requests` is not installed.")
         sys.exit(1)
+
+
+def determine_vbt(args):
+    if args.skip_plaintexts:
+        return None
+
+    if args.vbt:
+        if not shutil.which("vbt"):
+            raise RuntimeError(
+                "`vbt` executable not found. Either install it locally (see verificatum.org for instructions) or use the --bytetree-parser or --skip-plaintexts flags."
+            )
+        return _check_output_vbt
+
+    if args.bytetree:
+        return import_bytetree()
+
+    if shutil.which("vbt"):
+        args.vbt = True
+        return _check_output_vbt
+
+    info("`vbt` executable not found. Falling back to bytetree.py.")
+    return import_bytetree()
 
 
 def import_bytetree():
@@ -728,8 +745,6 @@ def vbt_count(fname, vbt_call):
 
 
 def _check_output_vbt(fname):
-    command = ["vbt"]
-
     # vbt converts the RAW plaintexts to JSON.
     return json.loads(
         # Read output from vbt but discard null bytes
@@ -737,12 +752,7 @@ def _check_output_vbt(fname):
         bytes(
             filter(
                 bool,
-                subprocess.check_output(
-                    command
-                    + [
-                        fname,
-                    ]
-                ),
+                subprocess.check_output(["vbt", fname]),
             )
         ).decode()
     )
