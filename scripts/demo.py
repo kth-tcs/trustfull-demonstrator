@@ -7,8 +7,11 @@ import shutil
 import string
 import subprocess
 import sys
+import time
 from collections import Counter
 from collections.abc import Sequence
+from functools import wraps
+from itertools import count
 from multiprocessing import Pool
 from urllib.parse import urljoin
 
@@ -55,17 +58,19 @@ class VirtualMachine:
         self._last_p = None
         self.args = args
 
-    def index(self, idx):
-        self.idx = idx
-        self.ip = self.ip.format(idx=idx + 1)
+    def party(self, idx=None):
+        if idx is None:
+            idx = self.idx
+        else:
+            self.idx = idx
+        if idx is None:
+            raise ValueError("idx is not set")
 
-    def party(self, idx):
-        self.idx = idx
         hostname = "0.0.0.0"
         http = self.args.port_http
         protocol = "http"
         udp = self.args.port_udp
-        return f"vmni -party -name party{idx} -http {protocol}://{self.ip}:{http} -httpl {protocol}://{hostname}:{http} -hint {self.ip}:{udp} -hintl {hostname}:{udp} stub.xml -dir {idx}/dir {idx}/privInfo.xml {idx}/protInfo.xml"
+        return f"vmni -party -name party{idx} -http {protocol}://{self.ip}:{http} -httpl {protocol}://{hostname}:{http} -hint {self.ip}:{udp} -hintl {hostname}:{udp} stub.xml -dir ./dir privInfo.xml {idx}-protInfo.xml"
 
     def ssh_call(self, cmds, **kwargs):
         self.communicate()
@@ -86,10 +91,10 @@ class VirtualMachine:
 
         self.communicate()
 
-        dest = f"{self.idx}-protInfo.xml"
+        file = f"{self.idx}-protInfo.xml"
         scp(
-            f"{self.args.username}@{self.ip}:~/election/{self.idx}/protInfo.xml",
-            dest,
+            f"{self.args.username}@{self.ip}:~/election/{file}",
+            file,
             override=True,
         )
 
@@ -107,7 +112,7 @@ class VirtualMachine:
             if not os.path.exists(fname):
                 raise RuntimeError(f"{fname} not found")
 
-            scp(fname, f"{self.args.username}@{self.ip}:~/election/{idx}/protInfo.xml")
+            scp(fname, f"{self.args.username}@{self.ip}:~/election/{fname}")
 
 
 def parse_args():
@@ -306,25 +311,10 @@ def start_main(args):
     n = len(vms)
 
     for idx, vm in enumerate(vms):
-        vm.index(idx)
-
-    prot = f"vmni -prot -sid Session1 -name myElection -nopart {n} -thres {n} stub.xml"
-    for idx, vm in enumerate(vms):
-        vm.ssh_call(
-            [
-                "killall java || true",
-                "rm -rf ~/election",
-                "mkdir -p ~/election",
-                "cd ~/election",
-                "mkdir " + " ".join(map(str, range(n))),
-                prot,
-                vm.party(idx),
-            ]
-        )
-        vm.get_prot_info()
+        setup_vm(idx, n, vm)
     for vm in vms:
         vm.send_prot_info(n)
-    prots = " ".join(f"{idx}/protInfo.xml" for idx in range(n))
+    prots = " ".join(f"{idx}-protInfo.xml" for idx in range(n))
     for vm in vms:
         vm.ssh_call(["cd ~/election", f"vmni -merge {prots} merged.xml"])
     for vm in vms:
@@ -332,7 +322,7 @@ def start_main(args):
             [
                 "cd ~/election",
                 'export _JAVA_OPTIONS="-Djava.net.preferIPv4Stack=true"',
-                f"vmn -keygen {vm.idx}/privInfo.xml merged.xml publicKey",
+                f"vmn -keygen privInfo.xml merged.xml publicKey",
             ]
         )
     for vm in vms:
@@ -347,6 +337,39 @@ def start_main(args):
     info(
         f"Public key pushed to {args.server}. Proceed with voting and run this script `tally` command when ready."
     )
+
+
+def retry_subprocess(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        for retries in count():
+            try:
+                return func(*args, **kwargs)
+            except subprocess.CalledProcessError:
+                if retries == 3:
+                    raise
+                info("retrying", func.__name__, retries)
+                time.sleep(1)
+
+    return wrapper
+
+
+@retry_subprocess
+def setup_vm(idx, n, vm):
+    vm.idx = idx
+    prot = f"vmni -prot -sid Session1 -name myElection -nopart {n} -thres {n} stub.xml"
+
+    vm.ssh_call(
+        [
+            "killall java || true",
+            "rm -rf ~/election",
+            "mkdir -p ~/election",
+            "cd ~/election",
+            prot,
+            vm.party(),
+        ]
+    )
+    vm.get_prot_info()
 
 
 def tally_main(args):
@@ -368,7 +391,7 @@ def tally_main(args):
             [
                 "cd ~/election",
                 'export _JAVA_OPTIONS="-Djava.net.preferIPv4Stack=true"',
-                f"vmn -mix $HOME/election/[0-9]*/privInfo.xml merged.xml ciphertexts plaintexts",
+                "vmn -mix privInfo.xml merged.xml ciphertexts plaintexts",
             ]
         )
     for vm in vms:
@@ -394,7 +417,7 @@ def tally_main(args):
                 'export _JAVA_OPTIONS="-Djava.net.preferIPv4Stack=true"',
                 "rm -rf /tmp/proof",
                 "mkdir /tmp/proof",
-                f"vmnv -sloppy -v -v -e -wd /tmp/proof -a file ~/election/merged.xml $HOME/election/[0-9]*/dir/nizkp/default",
+                "vmnv -sloppy -v -v -e -wd /tmp/proof -a file ~/election/merged.xml $HOME/election/dir/nizkp/default",
             ]
         )
     ret = 0
