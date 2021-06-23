@@ -255,6 +255,12 @@ def parse_args():
         help="Do not parse the plaintexts and do not upload them to the results page",
     )
 
+    tally_election_parser.add_argument(
+        "--delete",
+        action="store_true",
+        help="Delete the most recent session, allows to re-tally without starting a new election",
+    )
+
     # Stop
     stop_parser.add_argument(
         "--delete",
@@ -385,12 +391,14 @@ def tally_main(args):
     # subprocess.run(["vmnd", "-ciphs", "publicKey", "130", "ciphertexts"], check=True)
 
     vms = get_vms(args, start=False)
+    vmn_delete = ["vmn -delete -f privInfo.xml merged.xml"] if args.delete else []
     for vm in vms:
         scp("ciphertexts", f"{args.username}@{vm.ip}:~/election/ciphertexts")
         vm.ssh_call(
             [
                 "cd ~/election",
                 'export _JAVA_OPTIONS="-Djava.net.preferIPv4Stack=true"',
+                *vmn_delete,
                 "vmn -mix privInfo.xml merged.xml ciphertexts plaintexts",
             ]
         )

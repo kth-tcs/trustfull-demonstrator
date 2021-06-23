@@ -142,6 +142,7 @@ the results to <https://vmn-webapp.azurewebsites.net/results> (by default). Usag
 ```text
 usage: demo.py tally [-h] [--vote-collecting-server SERVER]
                      [--bytetree-parser | --vbt | --skip-plaintexts]
+                     [--delete]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -155,6 +156,8 @@ optional arguments:
                         $PATH
   --skip-plaintexts     Do not parse the plaintexts and do not upload them to
                         the results page
+  --delete              Delete the most recent session, allows to re-tally
+                        without starting a new election
 ```
 
 `vbt` is needed to parse the plaintexts locally. Follow the installation instructions on <https://www.verificatum.org/>
