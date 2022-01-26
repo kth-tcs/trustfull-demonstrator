@@ -95,6 +95,7 @@ class VirtualMachine:
         scp(
             f"{self.args.username}@{self.ip}:~/election/{file}",
             file,
+            self.args,
             override=True,
         )
 
@@ -112,7 +113,11 @@ class VirtualMachine:
             if not os.path.exists(fname):
                 raise RuntimeError(f"{fname} not found")
 
-            scp(fname, f"{self.args.username}@{self.ip}:~/election/{fname}")
+            scp(
+                fname,
+                f"{self.args.username}@{self.ip}:~/election/{fname}",
+                self.args,
+            )
 
 
 def parse_args():
@@ -334,7 +339,12 @@ def start_main(args):
     for vm in vms:
         vm.communicate()
 
-    scp(f"{args.username}@{vms[0].ip}:~/election/publicKey", "publicKey", override=True)
+    scp(
+        f"{args.username}@{vms[0].ip}:~/election/publicKey",
+        "publicKey",
+        self.args,
+        override=True,
+    )
 
     with open("publicKey", "rb") as f:
         requests.post(
@@ -393,7 +403,7 @@ def tally_main(args):
     vms = get_vms(args, start=False)
     vmn_delete = ["vmn -delete -f privInfo.xml merged.xml"] if args.delete else []
     for vm in vms:
-        scp("ciphertexts", f"{args.username}@{vm.ip}:~/election/ciphertexts")
+        scp("ciphertexts", f"{args.username}@{vm.ip}:~/election/ciphertexts", self.args)
         vm.ssh_call(
             [
                 "cd ~/election",
@@ -407,6 +417,7 @@ def tally_main(args):
     scp(
         f"{args.username}@{vms[0].ip}:~/election/plaintexts",
         "plaintexts",
+        self.args,
         override=True,
     )
     assert os.path.exists("plaintexts")
@@ -532,13 +543,15 @@ def ssh_call(ip, cmds, args, **kwargs):
     )
 
 
-def scp(src, dest, override=False):
+def scp(src, dest, args, override=False):
+    identity_file = ["-i", args.identity_file] if args.identity_file else []
+
     if override:
         try:
             os.unlink(dest)
         except FileNotFoundError:
             pass
-    return subprocess.run(["scp", src, dest], check=True)
+    return subprocess.run(["scp", *identity_file, src, dest], check=True)
 
 
 def start_docker(args):
