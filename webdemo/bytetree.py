@@ -4,7 +4,7 @@ from typing import ByteString, Iterator, List, Tuple, Union
 
 BYTEORDER = "big"
 
-ByteTreeValue = Union[ByteString, Sequence["ByteTree"]]
+# ByteTreeValue = Union[ByteString, Sequence["ByteTree"]]
 
 
 class ByteTree:
@@ -18,7 +18,7 @@ class ByteTree:
     NODE = 0
     LEAF = 1
 
-    def __init__(self, value: ByteTreeValue) -> None:
+    def __init__(self, value) -> None:
         if not isinstance(value, Sequence):
             raise TypeError("value should be of type Sequence")
 
@@ -27,7 +27,7 @@ class ByteTree:
             self.type = ByteTree.LEAF
         else:
             self.type = ByteTree.NODE
-        self.value: ByteTreeValue = value
+        self.value = value
 
     def is_node(self) -> bool:
         return self.type == ByteTree.NODE
