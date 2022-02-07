@@ -403,7 +403,7 @@ def tally_main(args):
     vms = get_vms(args, start=False)
     vmn_delete = ["vmn -delete -f privInfo.xml merged.xml"] if args.delete else []
     for vm in vms:
-        scp("ciphertexts", f"{args.username}@{vm.ip}:~/election/ciphertexts", self.args)
+        scp("ciphertexts", f"{args.username}@{vm.ip}:~/election/ciphertexts", args)
         vm.ssh_call(
             [
                 "cd ~/election",
@@ -417,7 +417,7 @@ def tally_main(args):
     scp(
         f"{args.username}@{vms[0].ip}:~/election/plaintexts",
         "plaintexts",
-        self.args,
+        args,
         override=True,
     )
     assert os.path.exists("plaintexts")
