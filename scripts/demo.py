@@ -342,7 +342,7 @@ def start_main(args):
     scp(
         f"{args.username}@{vms[0].ip}:~/election/publicKey",
         "publicKey",
-        self.args,
+        args,
         override=True,
     )
 
