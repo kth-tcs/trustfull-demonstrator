@@ -77,7 +77,7 @@ The first time you call the script, you'll need to use the `--login` flag to set
 your machine. Follow the instructions to log in Azure through the KTH SSO. You will need to use `<username>@ug.kth.se`
 as your username. The user has to be member of a billable resource group (eg the Trustfull resource group "tcs").
 
-### Deploying the server-side back-end machines
+### Deploying the server-side back-end machines (~ 10 minutes)
 
 Use the `deploy` subcommand of [`scripts/demo.py`](scripts/demo.py). Complete usage is:
 
@@ -133,6 +133,16 @@ optional arguments:
 Once the mix network has produced the public key, the script pushes it to the vote collecting server. Once prompted, go
 to <https://vmn-webapp.azurewebsites.net/> and proceed with the election.
 
+### Voting
+
+Go to <https://vmn-webapp.azurewebsites.net/> and vote.
+
+Under the hood, each post triggers a POST request to <https://vmn-webapp.azurewebsites.net/> with a payload in application/x-www-form-urlencoded, containing a `field` which is the output a Javascript based encryption:
+
+     field: [[0,0,0,0,2,1,0,0,0,33,0,52,61,1,139,203,21,202,94,135,184,52,213,119,7,110,18,167,185,205,0,213,222,24,58,171,45,3,222,193,237,81,115,1,0,0,0,33,0,25,116,227,230,134,222,141,46,56,77,184,239,173,194,244,173,218,117,218,185,214,173,101,204,244,19,42,156,49,246,59,144],[0,0,0,0,2,1,0,0,0,33,0,220,196,241,58,97,135,3,13,81,131,166,153,143,170,60,171,63,106,225,6,89,187,65,153,31,69,145,171,117,227,103,222,1,0,0,0,33,0,202,156,123,171,138,190,104,52,185,195,121,185,24,42,32,158,27,121,123,94,62,68,170,134,38,159,43,120,215,40,33,252]]
+
+
+
 ### Collecting the votes for the tallying
 
 The subcommand `tally` of [`scripts/demo.py`](scripts/demo.py) will first get the ciphertexts from the vote collecting
@@ -165,6 +175,10 @@ to compile that program since it's included with [verificatum-vcr](https://githu
 program is used to parse verificatum's byte tree format and output a JSON representation. Alternatively, the
 `--bytetree-parser` flag uses a python port of the needed functionality through the
 [`webdemo/bytetree.py`](webdemo/bytetree.py) file.
+
+Example run of `demo.py tally`: <https://gist.github.com/algomaster99/f7529b6dd2304d7ba26b2fafec51690c>
+
+Then, the results can be browsed at <https://vmn-webapp.azurewebsites.net/results>.
 
 ### Shutting down all servers
 
