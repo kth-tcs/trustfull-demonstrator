@@ -27,6 +27,21 @@
 // ############## Javascript Verificatum Crypto Libary ##################
 // ######################################################################
 
+var wasm_muladd_loop;
+var memory;
+
+WebAssembly.instantiateStreaming(fetch('static/muladd.wasm'), { env: {} }).then(
+    (results) => {
+        wasm_muladd_loop = results.instance.exports.muladd_loop
+        var offset = results.instance.exports.get_buffer()
+        memory = new Uint32Array(
+            results.instance.exports.memory.buffer,
+            offset,
+            8989
+        )
+    }
+)
+
 /**
  * @description
  * This library provides the cryptographic routines needed by an
@@ -1759,56 +1774,13 @@
              * @memberof verificatum.arithm.li
              */
             var muladd_loop = function (w, x, start, end, Y, i, c) {
-
-                // Temporary variables in muladd.
-                var hx;
-                var lx;
-                var cross;
-
-                // Extract upper and lower halves of Y.
-                var hy = (Y >>> 14);
-                var ly = (Y & 0x3fff);
-
-                // This implies:
-                // hy < 2^(14 + 1)
-                // ly < 2^14
-
-                // The invariant of the loop is c < 2^(28 + 1).
+                memory.set(x.concat(w))
+                c = wasm_muladd_loop(x.length, start, end, Y, i, c)
                 for (var j = start; j < end; j++) {
-
-                    // Extract upper and lower halves of x.
-                    hx = (x[j] >>> 14);
-                    lx = (x[j] & 0x3fff);
-
-                    // This implies:
-                    // hx < 2^14
-                    // lx < 2^14
-
-                    // Compute the sum of the cross terms.
-                    cross = (hx * ly + lx * hy) | 0;
-
-                    // This implies:
-                    // cross < 2^(28 + 2)
-
-                    // Partial computation from which the lower word can be
-                    // extracted.
-                    lx = (((w[j + i] | 0) + lx * ly +
-                           ((cross & 0x3fff) << 14)) | 0) + c;
-
-                    // This implies: so we can safely use bit operator on lx.
-                    // lx < 2^(28 + 2)
-
-                    // Complete the computation of the higher bits.
-                    c = ((lx >>> 28) + hx * hy +
-                         (cross >>> 14) ) | 0;
-
-                    // Extract the lower word of x * y.
-                    w[j + i] = lx & 0xfffffff;
+                  w[j + i] = memory[x.length + j + i]
                 }
-
-                // This is a (28 + 1)-bit word when Y is.
                 return c;
-            };
+              }
 
             /**
              * @description Sets w = x * y, where w has two limbs and x and y are
