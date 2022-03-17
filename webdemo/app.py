@@ -25,6 +25,7 @@ POLL_DATA = {
     "publicKey": None,
 }
 STATS = {}
+RESULTS = "results.json"
 
 
 def init_stats():
@@ -81,18 +82,26 @@ def _validate_vote(vote):
     return None
 
 
-@app.route("/reset")
-def reset():
-    return _reset()
+def _delete_file(file):
+    if os.path.exists(file):
+        stat = os.stat(file)
+        os.remove(file)
+        return True
+    return False
 
 
 def _reset():
     STATS["nvotes"] = 0
+    
+    response_text = ""
+    if _delete_file(FILENAME):
+        response_text += "Successfully deleted {FILENAME}:<br/><pre>{stat}</pre>\n"
+    
+    if _delete_file(RESULTS):
+        response_text += "Successfully deleted {RESULTS}:<br/><pre>{stat}</pre>\n"
 
-    if os.path.exists(FILENAME):
-        stat = os.stat(FILENAME)
-        os.remove(FILENAME)
-        return f"Successfully deleted {FILENAME}:<br/><pre>   {stat}</pre>"
+    if response_text:
+        return response_text
 
     return "Nothing to do!"
 
@@ -176,16 +185,21 @@ def results():
 
     This function is exempt from CSRF since it is not meant to be accessed from the web interface.
     """
-    d = results.__dict__
-    d.setdefault("content", None)
-
+    
     if request.method == "POST":
-        d["content"] = request.get_json()
+        with open(RESULTS, 'w+') as result:
+            result.write(json.dumps(request.get_json()))
         return "OK"
 
-    content = d.get("content")
+    if not os.path.exists(RESULTS):
+        return "Result file does not exist", 404
+
+    content = None
+    with open(RESULTS, 'r+') as result:
+        content = json.loads(result.read())
+
     if content is None:
-        return "No results found", 404
+        return "Result file is empty", 404
 
     largest = max(content.values())
     palette = [
