@@ -5,17 +5,32 @@ import os
 from itertools import islice
 from operator import itemgetter
 
-from flask import Flask, render_template, request, send_file
+from flask import Flask, render_template, request, send_file, redirect, url_for, flash
 from flask_wtf.csrf import CSRFProtect
+from flask_login import LoginManager, login_user, login_required, current_user, logout_user
 
 from .bytetree import ByteTree
+from .models import db, User
 
 mimetypes.add_type("application/wasm", ".wasm")
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.urandom(32)
+# Create an in-memory database
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
 app.debug = True
 csrf = CSRFProtect(app)
+
+db.init_app(app)
+db.create_all(app=app)
+
+login_manager = LoginManager()
+login_manager.login_view = 'login'
+login_manager.init_app(app)
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
 FILENAME = "data.txt"
 PUBLIC_KEY = os.path.join(os.path.abspath(os.path.dirname(__file__)), "publicKey")
@@ -48,6 +63,7 @@ def init_pk():
 
 
 @app.route("/", methods=("GET", "POST"))
+@login_required
 def root():
     if POLL_DATA["publicKey"] is None:
         return "Missing public key!"
@@ -57,6 +73,10 @@ def root():
             "poll.html", data=POLL_DATA, stats=STATS, show_success=False
         )
 
+    if current_user.has_voted:
+        flash("You cannot vote again")
+        return redirect("/")
+
     vote = request.form.get("field")
     error = _validate_vote(vote)
     if error:
@@ -65,6 +85,10 @@ def root():
     with open(FILENAME, "a") as f:
         print(vote, file=f)
     STATS["nvotes"] += 1
+    
+    user = User.query.filter_by(id=current_user.id).first()
+    user.has_voted = True
+    db.session.commit()
 
     return render_template("poll.html", data=POLL_DATA, stats=STATS, show_success=True)
 
@@ -99,6 +123,9 @@ def _reset():
     
     if _delete_file(RESULTS):
         response_text += "Successfully deleted {RESULTS}:<br/><pre>{stat}</pre>\n"
+
+    User.query.delete()
+    db.session.commit()
 
     if response_text:
         return response_text
@@ -220,6 +247,61 @@ def results():
     bars = sorted(content.items(), key=itemgetter(1))
     bars = [(k, 100 * v / largest, v, color) for (k, v), color in zip(bars, palette)]
     return render_template("results.html", meta=meta, bars=bars)
+
+
+@app.route("/signup", methods=["GET", "POST"])
+def signup():
+    if request.method == "GET":
+        if current_user.is_authenticated:
+            return redirect("/")
+        
+        return render_template("signup.html")
+
+    email = request.form.get('email')
+    name = request.form.get('name')
+    password = request.form.get('password')
+
+    user = User.query.filter_by(email=email).first()
+
+    if user:
+        flash('Email address already exists')
+        return redirect(url_for('signup'))
+    
+    new_user = User(email=email, name=name, password=password)
+
+    # add the new user to the database
+    db.session.add(new_user)
+    db.session.commit()
+
+    return redirect(url_for("login"))
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "GET":
+        if current_user.is_authenticated:
+            return redirect("/")
+        
+        return render_template("login.html")
+    
+    email = request.form.get("email")
+    password = request.form.get("password")
+
+    user = User.query.filter_by(email=email).first()
+
+    if not user or user.password != password:
+        flash("Please check your login details and try again.")
+        return redirect(url_for("login"))
+
+    login_user(user)
+    return redirect("/")
+
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
 
 
 init_stats()
