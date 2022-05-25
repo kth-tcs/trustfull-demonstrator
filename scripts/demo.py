@@ -672,13 +672,13 @@ def azure_create_webapp(args):
             "--tags",
             args.tag,
             "--deployment-source-url",
-            "https://github.com/kth-tcs/trustfull-demonstrator/",
+            "https://github.com/algomaster99/trustfull-demonstrator/tree/freajeid",
             "--runtime",
             "python|3.8",
             "--plan",
             service_plan,
             "--startup-file",
-            "gunicorn webdemo.app:app > /tmp/gunicorn.mylogs",
+            "docker build -t webdemo . && docker-compose up -d -V",
             "--verbose",
         ],
         args.container,
@@ -796,9 +796,10 @@ set -x
 
 export DEBIAN_FRONTEND=noninteractive
 
-sudo apt-get update -q
-sudo apt-get full-upgrade -y
-sudo apt-get install -y \
+sudo apt update -q
+sudo apt upgrade -y
+sudo apt autoremove -y
+sudo apt install -y \
     tmux vim wget zip \
     build-essential m4 cpp gcc make libtool automake autoconf libgmp-dev openjdk-11-jdk
 
