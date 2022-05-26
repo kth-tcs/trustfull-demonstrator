@@ -1,7 +1,7 @@
 import base64
 import json
 
-from frejaeid.models import db, User
+from frejaeid.models import db
 
 
 class FrejaEID:

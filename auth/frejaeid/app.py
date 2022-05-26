@@ -33,8 +33,8 @@ def initiate_authentication():
     _save_auth_ref(freja_auth_ref, user_email)
     return Response(json.dumps({'message': 'You have been logged in. Check your phone :)'}), status=200)
   
-
-  return f'{r.json()}'
+  ## Adding this for the sake of defensive programming and debugging in future.
+  return Response(json.dumps({'message': f'Could not process {r.json()}'}), status=500)
 
 
 @app.route('/register_vote', methods=['POST'])
