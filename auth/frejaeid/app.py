@@ -2,9 +2,9 @@ import json
 import requests
 from flask import Flask, request, Response
 
-from frejaeid import urls
-from frejaeid.freaeid import FrejaEID
-from frejaeid.models import db, User
+from auth.frejaeid import urls
+from auth.frejaeid.freaeid import FrejaEID
+from auth.frejaeid.models import db, User
 
 
 app = Flask(__name__, static_url_path='/static')
