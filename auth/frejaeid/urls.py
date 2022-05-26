@@ -7,3 +7,7 @@ def _root_url():
 
 def initiate_authentication():
   return f'{_root_url()}/initAuthentication'
+
+
+def cancel_autentication():
+  return f'{_root_url()}/cancel'
