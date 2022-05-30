@@ -128,11 +128,11 @@ def _save_auth_ref(auth_ref: str, user_email: str) -> None:
 # FrejaEid uses it to identify who is making API requests
 def _get_client_ssl_certificate():
   return (
-    'frejaeid/static/kth_client.crt',
-    'frejaeid/static/kth_client.key',
+    'auth/frejaeid/static/kth_client.crt',
+    'auth/frejaeid/static/kth_client.key',
   )  
 
 
 # Our service uses to trust FrejaEid server
 def _get_server_certificate():
-  return 'frejaeid/static/freja.crt'
+  return 'auth/frejaeid/static/freja.crt'
