@@ -37,11 +37,33 @@ def initiate_authentication():
   return Response(json.dumps({'message': f'Could not process {r.json()}'}), status=500)
 
 
+@app.route('/authentication_validity', methods=['POST'])
+def authentication_validity():
+  content = request.json
+  user_email = content['email']
+  return _check_validity(user_email)
+
+
 @app.route('/register_vote', methods=['POST'])
 def register_vote():
   content = request.json
   user_email = content['email']
+  validity = _check_validity(user_email)
+
+  if validity.status_code == 200:
+    user = User.query.filter_by(email=user_email).first()
+
+    if user.has_voted:
+      return Response(json.dumps({'message': 'You have already voted!'}), status=418)
+    
+    user.has_voted = True
+    db.session.commit()
+    return Response(json.dumps({'message': 'You are allowed to vote.'}), status=200)
   
+  return validity
+
+
+def _check_validity(user_email) -> Response:
   user = User.query.filter_by(email=user_email).first()
 
   if user is None:
@@ -67,13 +89,7 @@ def register_vote():
     if response_body['status'] != 'APPROVED':
       return Response(json.dumps({'message': 'You have not approved the authentication.'}), status=403)
     
-    if user.has_voted:
-      return Response(json.dumps({'message': 'You have already voted!'}), status=418)
-    
-    user.has_voted = True
-    db.session.commit()
-
-    return Response(json.dumps({'message': 'You are allowed to vote'}), status=200)
+    return Response(json.dumps({'message': 'Your authentication is valid.'}), status=200)
 
   if response_body['code'] == 1100:
     return Response(json.dumps({'message': 'Reauthenicate with Freja e-ID'}), status=403)
