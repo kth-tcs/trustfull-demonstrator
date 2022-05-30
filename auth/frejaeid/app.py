@@ -79,7 +79,6 @@ def _check_validity(user_email) -> Response:
   response_body = request_to_check_validity.json()
 
   if request_to_check_validity.status_code == 200:
-    response_body = request_to_check_validity.json()
     if response_body['status'] == 'CANCELED':
       return Response(json.dumps({'message': 'You denied the authentication on the mobile and hence cannot vote. चित भी मेरी पट भी मेरी'}), status=403)
 
