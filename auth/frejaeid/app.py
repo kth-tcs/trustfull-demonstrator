@@ -16,10 +16,26 @@ db.init_app(app)
 db.create_all(app=app)
 
 
+def _validate_body(content):
+  if content is None:
+    return Response(json.dumps({'message': '`Content-Type` header must be `application/json`.'}), status=400)
+  
+  user_email = content.get('email')
+  if user_email is None:
+    return Response(json.dumps({'message': '\'email\' atttribute missing in payload'}), status=400)
+  
+  return Response(json.dumps({'message': 'All okay!'}))
+
+
 @app.route('/init_auth', methods=['POST'])
 def initiate_authentication():
-  content = request.json
-  user_email = content['email']
+  request_payload = _validate_body(request.get_json())
+
+  if request_payload.status_code == 400:
+    return request_payload
+  
+  user_email = request.get_json().get('email')
+
   r = requests.post(
     urls.initiate_authentication(),
     data=FrejaEID.get_body_for_init_auth(user_email),
@@ -40,15 +56,25 @@ def initiate_authentication():
 
 @app.route('/authentication_validity', methods=['POST'])
 def authentication_validity():
-  content = request.json
-  user_email = content['email']
+  request_payload = _validate_body(request.get_json())
+
+  if request_payload.status_code == 400:
+    return request_payload
+  
+  user_email = request.get_json().get('email')
+  
   return _check_validity(user_email)
 
 
 @app.route('/register_vote', methods=['POST'])
 def register_vote():
-  content = request.json
-  user_email = content['email']
+  request_payload = _validate_body(request.get_json())
+
+  if request_payload.status_code == 400:
+    return request_payload
+  
+  user_email = request.get_json().get('email')
+
   validity = _check_validity(user_email)
 
   if validity.status_code == 200:
@@ -99,8 +125,12 @@ def _check_validity(user_email) -> Response:
 
 @app.route('/cancel', methods=['POST'])
 def cancel_authentication():
-  content = request.json
-  user_email = content['email']
+  request_payload = _validate_body(request.get_json())
+
+  if request_payload.status_code == 400:
+    return request_payload
+  
+  user_email = request.get_json().get('email')
 
   user = User.query.filter_by(email=user_email).first()
 
