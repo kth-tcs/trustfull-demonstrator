@@ -2,10 +2,12 @@ import io
 import json
 import mimetypes
 import os
+import requests
+from functools import wraps
 from itertools import islice
 from operator import itemgetter
 
-from flask import Flask, render_template, request, send_file
+from flask import Flask, render_template, request, send_file, redirect, flash, url_for, make_response
 from flask_wtf.csrf import CSRFProtect
 
 from .bytetree import ByteTree
@@ -47,7 +49,17 @@ def init_pk():
             POLL_DATA["publicKey"] = [int(x) for x in f.read()]
 
 
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if request.cookies.get('user') == None or not _is_authenticated(request.cookies.get('user')):
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
 @app.route("/", methods=("GET", "POST"))
+@login_required
 def root():
     if POLL_DATA["publicKey"] is None:
         return "Missing public key!"
@@ -104,6 +116,42 @@ def _reset():
         return response_text
 
     return "Nothing to do!"
+
+
+@csrf.exempt
+@app.route('/login', methods=('GET', 'POST'))
+def login():
+    if request.method == 'GET':
+        if request.cookies.get('user') != None:
+            if _is_authenticated(request.cookies.get('user')):
+                return redirect("/")
+        return render_template("login.html")
+    
+    email = request.form.get("email")
+    r = requests.post(
+        'https://auth-webapp.azurewebsites.net/init_auth',
+        json={'email': email},
+    )
+
+    if r.status_code == 200:
+        res = make_response(redirect('/'))
+        res.set_cookie('user', str(email))
+        return res
+    
+    flash("Please check your login details and try again.")
+    return redirect(url_for("login"))
+
+
+def _is_authenticated(email):
+    r = requests.post(
+        'https://auth-webapp.azurewebsites.net/authentication_validity',
+        json={'email': email}
+    )
+
+    if r.status_code == 200:
+        return True
+    
+    return False
 
 
 @csrf.exempt
