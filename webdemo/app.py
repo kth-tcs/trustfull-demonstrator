@@ -129,7 +129,7 @@ def login():
     
     email = request.form.get("email")
     r = requests.post(
-        'https://auth-webapp.azurewebsites.net/init_auth',
+        'http://0.0.0.0:8001/init_auth',
         json={'email': email},
     )
 
@@ -144,7 +144,7 @@ def login():
 
 def _is_authenticated(email):
     r = requests.post(
-        'https://auth-webapp.azurewebsites.net/authentication_validity',
+        'http://0.0.0.0:8001/authentication_validity',
         json={'email': email}
     )
 
