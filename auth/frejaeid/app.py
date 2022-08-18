@@ -16,7 +16,7 @@ db.init_app(app)
 db.create_all(app=app)
 
 
-def _validate_body(content):
+def _validate_auth_body(content):
   if content is None:
     return Response(json.dumps({'message': '`Content-Type` header must be `application/json`.'}), status=400)
   
@@ -29,7 +29,7 @@ def _validate_body(content):
 
 @app.route('/init_auth', methods=['POST'])
 def initiate_authentication():
-  request_payload = _validate_body(request.get_json())
+  request_payload = _validate_auth_body(request.get_json())
 
   if request_payload.status_code == 400:
     return request_payload
@@ -56,7 +56,7 @@ def initiate_authentication():
 
 @app.route('/authentication_validity', methods=['POST'])
 def authentication_validity():
-  request_payload = _validate_body(request.get_json())
+  request_payload = _validate_auth_body(request.get_json())
 
   if request_payload.status_code == 400:
     return request_payload
@@ -68,7 +68,7 @@ def authentication_validity():
 
 @app.route('/register_vote', methods=['POST'])
 def register_vote():
-  request_payload = _validate_body(request.get_json())
+  request_payload = _validate_auth_body(request.get_json())
 
   if request_payload.status_code == 400:
     return request_payload
@@ -125,7 +125,7 @@ def _check_validity(user_email) -> Response:
 
 @app.route('/cancel', methods=['POST'])
 def cancel_authentication():
-  request_payload = _validate_body(request.get_json())
+  request_payload = _validate_auth_body(request.get_json())
 
   if request_payload.status_code == 400:
     return request_payload
@@ -169,6 +169,50 @@ def _save_auth_ref(auth_ref: str, user_email: str) -> None:
     # add the new user to the database
     db.session.add(new_user)
     db.session.commit()
+
+
+def _validate_sign_body(content):
+  if content is None:
+    return Response(json.dumps({'message': '`Content-Type` header must be `application/json`.'}), status=400)
+  
+  user_email = content.get('email')
+  if user_email is None:
+    return Response(json.dumps({'message': '\'email\' atttribute missing in payload'}), status=400)
+  
+  text = content.get('text')
+  if text is None:
+    return Response(json.dumps({'message': '\'text\' atttribute missing in payload'}), status=400)
+  
+  vote = content.get('vote')
+  if vote is None:
+    return Response(json.dumps({'message': '\'vote\' atttribute missing in payload'}), status=400)
+  
+  return Response(json.dumps({'message': 'All okay!'}))
+
+@app.route('/init_sign', methods=['POST'])
+def initiate_signing():
+  request_payload = _validate_sign_body(request.get_json())
+
+  if request_payload.status_code == 400:
+    return request_payload
+  
+  user_email = request.get_json().get('email')
+  text = request.get_json().get('text')
+  vote = request.get_json().get('vote')
+
+  r = requests.post(
+    urls.initiate_signing(),
+    data=FrejaEID.get_body_for_init_sign(user_email, text, vote),
+    cert=_get_client_ssl_certificate(),
+    verify=_get_server_certificate()
+  )
+
+  if r.status_code == 200:
+    freja_sign_ref = r.json()['signRef']
+    return Response(json.dumps({'message': f'{freja_sign_ref}'}), status=200)
+  
+  ## Adding this for the sake of defensive programming and debugging in future.
+  return Response(json.dumps({'message': f'Could not process {r.json()}'}), status=500)
 
 
 # FrejaEid uses it to identify who is making API requests
