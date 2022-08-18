@@ -36,6 +36,36 @@ class FrejaEID:
     frejaeid_body = f'cancelAuthRequest={b64_encoded}'
     return frejaeid_body
 
+  @classmethod
+  def get_body_for_init_sign(cls, email: str, vote: str) -> str:
+    human_readable_body = {
+      "userInfoType": "EMAIL",
+      "userInfo": email,
+      "minRegistrationLevel": "EXTENDED",
+      "title": "Compare your hash",
+      "pushNotification": {
+        "title": "Hi from VCS :)",
+        "text": "Please sign your vote"
+      },
+      "dataToSignType": "EXTENDED_UTF8_TEXT",
+      "dataToSign": {
+        "text": f"{vote}",
+        "binaryData": ""
+      },
+      "signatureType": "EXTENDED",
+    }
+    b64_encoded = cls._base64encoder(human_readable_body)
+    frejaedi_body = f'initSignRequest={b64_encoded}'
+    return frejaedi_body
+  
+  @classmethod
+  def get_body_for_confirming_signature(cls, sign_ref: str) -> str:
+    human_readable_body = {
+      "signRef": sign_ref,
+    }
+    b64_encoded = cls._base64encoder(human_readable_body)
+    frejaeid_body = f'getOneSignResultRequest={b64_encoded}'
+    return frejaeid_body
 
   @staticmethod
   def _base64encoder(body: dict):

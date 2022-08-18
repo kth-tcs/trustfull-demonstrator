@@ -36,6 +36,7 @@
                         </div>
                     </li>
                     {% endfor %}
+                    <input required type="email" class="form-control" name="email-for-signing" id="email-for-signing" placeholder="Enter email">
                 </ul>
                 <div class="card-body">
                     <button type="submit" class="btn btn-primary">Vote</button>
@@ -44,6 +45,9 @@
                     <a href="/publicKey" class="btn btn-secondary">Public Key</a>
                 </div>
             </form>
+        </div>
+        <div>
+            {{ vote }}
         </div>
         <div class="card-footer text-muted">
             {{ stats.nvotes }} vote{{ '' if stats.nvotes == 1 else 's' }} so far
