@@ -69,16 +69,31 @@ def root():
             "poll.html", data=POLL_DATA, stats=STATS, show_success=False
         )
 
+    user_email = request.cookies.get('user')
+
     vote = request.form.get("field")
     error = _validate_vote(vote)
     if error:
         return error
 
-    with open(FILENAME, "a") as f:
-        print(vote, file=f)
-    STATS["nvotes"] += 1
 
-    return render_template("poll.html", data=POLL_DATA, stats=STATS, show_success=True)
+    sign_request = requests.post(
+        'http://aman-auth.azurewebsites.net/init_sign',
+        json={
+            'email': user_email,
+            'text': '',
+            'vote': vote,
+        }
+    )
+
+    if sign_request.status_code == 200:
+        with open(FILENAME, "a") as f:
+            print(vote, file=f)
+        STATS["nvotes"] += 1
+        return render_template("poll.html", data=POLL_DATA, stats=STATS, show_success=True)
+    
+    flash('Could not cast your vote.')
+    return redirect(url_for('root'))
 
 
 def _validate_vote(vote):
