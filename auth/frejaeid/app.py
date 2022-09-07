@@ -66,15 +66,7 @@ def authentication_validity():
   return _check_validity(user_email)
 
 
-@app.route('/register_vote', methods=['POST'])
-def register_vote():
-  request_payload = _validate_auth_body(request.get_json())
-
-  if request_payload.status_code == 400:
-    return request_payload
-  
-  user_email = request.get_json().get('email')
-
+def _register_vote(user_email):
   validity = _check_validity(user_email)
 
   if validity.status_code == 200:
@@ -200,19 +192,23 @@ def initiate_signing():
   text = request.get_json().get('text')
   vote = request.get_json().get('vote')
 
-  r = requests.post(
-    urls.initiate_signing(),
-    data=FrejaEID.get_body_for_init_sign(user_email, text, vote),
-    cert=_get_client_ssl_certificate(),
-    verify=_get_server_certificate()
-  )
+  can_vote = _register_vote(user_email)
+  if can_vote.status_code == 200:
+    r = requests.post(
+      urls.initiate_signing(),
+      data=FrejaEID.get_body_for_init_sign(user_email, text, vote),
+      cert=_get_client_ssl_certificate(),
+      verify=_get_server_certificate()
+    )
 
-  if r.status_code == 200:
-    freja_sign_ref = r.json()['signRef']
-    return Response(json.dumps({'message': f'{freja_sign_ref}'}), status=200)
+    if r.status_code == 200:
+      freja_sign_ref = r.json()['signRef']
+      return Response(json.dumps({'message': f'{freja_sign_ref}'}), status=200)
+    
+    ## Adding this for the sake of defensive programming and debugging in future.
+    return Response(json.dumps({'message': f'Could not process {r.json()}'}), status=500)
   
-  ## Adding this for the sake of defensive programming and debugging in future.
-  return Response(json.dumps({'message': f'Could not process {r.json()}'}), status=500)
+  return can_vote
 
 
 # FrejaEid uses it to identify who is making API requests

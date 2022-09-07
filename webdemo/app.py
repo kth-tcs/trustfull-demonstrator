@@ -92,6 +92,10 @@ def root():
         STATS["nvotes"] += 1
         return render_template("poll.html", data=POLL_DATA, stats=STATS, show_success=True)
     
+    if sign_request.status_code == 418:
+        flash(sign_request.json()['message'])
+        return redirect(url_for('root'))
+
     flash('Could not cast your vote.')
     return redirect(url_for('root'))
 
