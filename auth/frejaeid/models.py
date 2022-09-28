@@ -6,6 +6,4 @@ db = SQLAlchemy()
 class User(UserMixin, db.Model):
     __tablename__ = "user"
     id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(127), unique=True)
-    freja_auth_ref = db.Column(db.String(255))
-    has_voted = db.Column(db.Boolean, default=False)
+    freja_auth_ref = db.Column(db.String(255), unique=True)

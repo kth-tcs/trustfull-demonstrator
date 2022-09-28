@@ -69,7 +69,7 @@ def root():
             "poll.html", data=POLL_DATA, stats=STATS, show_success=False
         )
 
-    user_email = request.cookies.get('user')
+    auth_ref = request.cookies.get('user')
 
     vote = request.form.get("field")
     error = _validate_vote(vote)
@@ -80,7 +80,7 @@ def root():
     sign_request = requests.post(
         'http://aman-auth.azurewebsites.net/init_sign',
         json={
-            'email': user_email,
+            'authRef': auth_ref,
             'text': '',
             'vote': vote,
         }
@@ -153,18 +153,19 @@ def login():
     )
 
     if r.status_code == 200:
+        auth_ref = r.json()['authRef']
         res = make_response(redirect('/'))
-        res.set_cookie('user', str(email))
+        res.set_cookie('user', str(auth_ref))
         return res
     
     flash("Please check your login details and try again.")
     return redirect(url_for("login"))
 
 
-def _is_authenticated(email):
+def _is_authenticated(user_identification):
     r = requests.post(
         'http://aman-auth.azurewebsites.net/authentication_validity',
-        json={'email': email}
+        json={'authRef': user_identification}
     )
 
     if r.status_code == 200:
