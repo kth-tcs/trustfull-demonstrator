@@ -155,7 +155,7 @@ def login():
     if r.status_code == 200:
         auth_ref = r.json()['authRef']
         res = make_response(redirect('/'))
-        res.set_cookie('user', str(auth_ref), max_age=120)
+        res.set_cookie('user', str(auth_ref))
         return res
     
     flash("Please check your login details and try again.")
