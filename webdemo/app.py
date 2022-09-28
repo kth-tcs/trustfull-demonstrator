@@ -72,6 +72,7 @@ def root():
     auth_ref = request.cookies.get('user')
 
     vote = request.form.get("field")
+    user_email = request.form.get('email-for-signing')
     error = _validate_vote(vote)
     if error:
         return error
@@ -80,6 +81,7 @@ def root():
     sign_request = requests.post(
         'http://aman-auth.azurewebsites.net/init_sign',
         json={
+            'email': user_email,
             'authRef': auth_ref,
             'text': '',
             'vote': vote,

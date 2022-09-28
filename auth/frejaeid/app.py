@@ -185,9 +185,9 @@ def _validate_sign_body(content):
   if content is None:
     return Response(json.dumps({'message': '`Content-Type` header must be `application/json`.'}), status=400)
   
-  # user_email = content.get('email')
-  # if user_email is None:
-  #   return Response(json.dumps({'message': '\'email\' atttribute missing in payload'}), status=400)
+  user_email = content.get('email')
+  if user_email is None:
+    return Response(json.dumps({'message': '\'email\' atttribute missing in payload'}), status=400)
   
   text = content.get('text')
   if text is None:
@@ -207,6 +207,7 @@ def initiate_signing():
     return request_payload
   
   auth_ref = request.get_json().get('authRef')
+  user_email = request.get_json().get('email')
   text = request.get_json().get('text')
   vote = request.get_json().get('vote')
 
@@ -214,7 +215,7 @@ def initiate_signing():
   if can_vote.status_code == 200:
     r = requests.post(
       urls.initiate_signing(),
-      data=FrejaEID.get_body_for_init_sign('kisama8022@giftcv.com', text, vote),
+      data=FrejaEID.get_body_for_init_sign(user_email, text, vote),
       cert=_get_client_ssl_certificate(),
       verify=_get_server_certificate()
     )
