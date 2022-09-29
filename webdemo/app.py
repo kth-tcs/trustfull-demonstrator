@@ -1,9 +1,11 @@
 import io
 import json
+import logging
 import mimetypes
 import os
 import requests
 from functools import wraps
+from hashlib import sha256
 from itertools import islice
 from operator import itemgetter
 
@@ -84,15 +86,16 @@ def root():
             'email': user_email,
             'authRef': auth_ref,
             'text': '',
-            'vote': vote,
+            'vote': sha256(str(vote).encode('utf-8')).hexdigest(),
         }
     )
 
     if sign_request.status_code == 200:
+        sign_ref = sign_request.json()
         with open(FILENAME, "a") as f:
             print(vote, file=f)
         STATS["nvotes"] += 1
-        return render_template("poll.html", data=POLL_DATA, stats=STATS, show_success=True)
+        return render_template("poll.html", data=POLL_DATA, stats=STATS, show_success=True, vote=sign_ref)
     
     if sign_request.status_code == 418:
         flash(sign_request.json()['message'])

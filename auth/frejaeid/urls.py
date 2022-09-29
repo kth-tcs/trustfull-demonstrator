@@ -27,3 +27,6 @@ def _sign():
 
 def initiate_signing():
   return f'{_sign()}/initSignature'
+
+def confirm_signing():
+  return f'{_sign()}/getOneResult'

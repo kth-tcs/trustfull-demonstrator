@@ -1,13 +1,36 @@
+import base64
 import json
+import time
 import requests
 from flask import Flask, request, Response
 
+# from auth.frejaeid.sign_confirmation import BackgroundThreadFactory, TASKS_QUEUE
 from auth.frejaeid import urls
 from auth.frejaeid.freaeid import FrejaEID
 from auth.frejaeid.models import db, User
 
 
 app = Flask(__name__, static_url_path='/static')
+# vote_signing_thread = BackgroundThreadFactory.create()
+
+# if not (app.debug or os.environ.get('FLASK_ENV') == 'development') or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+#   vote_signing_thread.start()
+
+#   original_handler = signal.getsignal(signal.SIGINT)
+
+#   def sigint_handler(signum, frame):
+#     vote_signing_thread.stop()
+
+#     # wait until thread is finished
+#     if vote_signing_thread.is_alive():
+#         vote_signing_thread.join()
+
+#     original_handler(signum, frame)
+
+#   try:
+#     signal.signal(signal.SIGINT, sigint_handler)
+#   except ValueError as e:
+#     print(f'{e}. Continuing execution...')
 
 # Create an in-memory database
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
@@ -189,10 +212,6 @@ def _validate_sign_body(content):
   if user_email is None:
     return Response(json.dumps({'message': '\'email\' atttribute missing in payload'}), status=400)
   
-  text = content.get('text')
-  if text is None:
-    return Response(json.dumps({'message': '\'text\' atttribute missing in payload'}), status=400)
-  
   vote = content.get('vote')
   if vote is None:
     return Response(json.dumps({'message': '\'vote\' atttribute missing in payload'}), status=400)
@@ -208,27 +227,57 @@ def initiate_signing():
   
   auth_ref = request.get_json().get('authRef')
   user_email = request.get_json().get('email')
-  text = request.get_json().get('text')
   vote = request.get_json().get('vote')
 
   can_vote = _register_vote(auth_ref)
   if can_vote.status_code == 200:
     r = requests.post(
       urls.initiate_signing(),
-      data=FrejaEID.get_body_for_init_sign(user_email, text, vote),
+      data=FrejaEID.get_body_for_init_sign(user_email, vote),
       cert=_get_client_ssl_certificate(),
       verify=_get_server_certificate()
     )
 
     if r.status_code == 200:
       freja_sign_ref = r.json()['signRef']
-      return Response(json.dumps({'message': f'{freja_sign_ref}'}), status=200)
+      signed_vote, has_signed = _confirm_if_user_has_signed(freja_sign_ref)
+      if has_signed:
+        return Response(json.dumps(
+          {
+            'vote': vote,
+            'signature': signed_vote,
+          }
+        ), status=200)
+      else:
+        return Response(json.dumps({'message': 'Vote was not signed within a certain time limit.'}), status=408)
     
     ## Adding this for the sake of defensive programming and debugging in future.
     return Response(json.dumps({'message': f'Could not process {r.json()}'}), status=500)
   
   return can_vote
 
+
+def _confirm_if_user_has_signed(sign_ref, retry_count=12):
+  if retry_count == 0:
+    return (None, False)
+  try:
+    r = requests.post(
+      urls.confirm_signing(),
+      data=FrejaEID.get_body_for_confirming_signature(sign_ref),
+      cert=_get_client_ssl_certificate(),
+      verify=_get_server_certificate()
+    )
+
+    if r.status_code == 200:
+      status = r.json()['status']
+      if status == 'APPROVED':
+        return (r.json()['details'], True)
+      else:
+        raise Exception('Not signed yet')
+  except Exception:
+    time.sleep(10)
+    retry_count -= 1
+    return _confirm_if_user_has_signed(sign_ref, retry_count)
 
 # FrejaEid uses it to identify who is making API requests
 def _get_client_ssl_certificate():
