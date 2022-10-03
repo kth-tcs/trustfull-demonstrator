@@ -85,11 +85,10 @@ def root():
     hashed_encryption = sha256()
     hashed_encryption.update(encrypted_vote)
     hex_string = hashed_encryption.digest().hex()
-    logging.error(f"Hex-string: {hex_string}]")
+    logging.error(f"Hex-string: {hex_string}")
 
     hex_digest = bytes.fromhex(hex_string)
     b64encode_bytes = base64.b64encode(hex_digest)
-    b64encode_string = b64encode_bytes.decode('utf-8')
 
     sign_request = requests.post(
         'http://aman-auth.azurewebsites.net/init_sign',
@@ -97,7 +96,7 @@ def root():
             'email': user_email,
             'authRef': auth_ref,
             'text': '',
-            'vote': b64encode_string,
+            'vote': b64encode_bytes,
         }
     )
 
