@@ -822,10 +822,10 @@ EOF
 
 # https://www.verificatum.org/html/install_vmn.html#ubuntu_18.04.4
 # Fetch, build, and install VMN as a single demonstration package.
-OPENSSL_CONF="$HOME/ssl.conf" wget https://www.verificatum.org/files/verificatum-vmn-3.0.4-full.tar.gz
-tar xvfz verificatum-vmn-3.0.4-full.tar.gz
+OPENSSL_CONF="$HOME/ssl.conf" wget https://www.verificatum.org/files/verificatum-vmn-3.1.0-full.tar.gz
+tar xvfz verificatum-vmn-3.1.0-full.tar.gz
 rm verificatum*.tar.gz
-cd verificatum-vmn-3.0.4-full
+cd verificatum-vmn-3.1.0-full
 make install
 
 echo 'done!'
