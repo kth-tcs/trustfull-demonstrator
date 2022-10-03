@@ -46,9 +46,11 @@
                 </div>
             </form>
         </div>
-        <div>
-            {{ vote }}
-        </div>
+        {% if vote %}
+            <div>
+                {{ vote }}
+            </div>
+        {% endif %}
         <div class="card-footer text-muted">
             {{ stats.nvotes }} vote{{ '' if stats.nvotes == 1 else 's' }} so far
         </div>
