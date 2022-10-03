@@ -1,5 +1,6 @@
 import io
 import json
+import logging
 import mimetypes
 import os
 import requests
@@ -80,13 +81,23 @@ def root():
         return error
 
 
+    encrypted_vote = str(vote).encode('utf-8')
+    hashed_encryption = sha256()
+    hashed_encryption.update(encrypted_vote)
+    hex_string = hashed_encryption.digest().hex()
+    logging.error(f"Hex-string: {hex_string}]")
+
+    hex_digest = bytes.fromhex(hex_string)
+    b64encode_bytes = base64.b64encode(hex_digest)
+    b64encode_string = b64encode_bytes.decode('utf-8')
+
     sign_request = requests.post(
         'http://aman-auth.azurewebsites.net/init_sign',
         json={
             'email': user_email,
             'authRef': auth_ref,
             'text': '',
-            'vote': base64.b64encode(str(vote).encode('utf-8')).decode('utf-8'),
+            'vote': b64encode_string,
         }
     )
 
