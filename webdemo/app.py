@@ -86,7 +86,7 @@ def root():
             'email': user_email,
             'authRef': auth_ref,
             'text': '',
-            'vote':  base64.b64encode(sha256(str(vote).encode('utf-8')).hexdigest()).decode('utf-8'),
+            'vote': base64.b64encode(sha256(str(vote).encode('ascii')).hexdigest()).decode('utf-8'),
         }
     )
 
