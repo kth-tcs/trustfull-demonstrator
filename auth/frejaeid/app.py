@@ -229,11 +229,14 @@ def initiate_signing():
   user_email = request.get_json().get('email')
   vote = request.get_json().get('vote')
 
+  hex_digest = bytes.fromhex(vote)
+  b64encode_bytes_vote = base64.b64encode(hex_digest)
+
   can_vote = _register_vote(auth_ref)
   if can_vote.status_code == 200:
     r = requests.post(
       urls.initiate_signing(),
-      data=FrejaEID.get_body_for_init_sign(user_email, vote),
+      data=FrejaEID.get_body_for_init_sign(user_email, b64encode_bytes_vote),
       cert=_get_client_ssl_certificate(),
       verify=_get_server_certificate()
     )
@@ -244,7 +247,7 @@ def initiate_signing():
       if has_signed:
         return Response(json.dumps(
           {
-            'vote': vote,
+            'vote': vote.decode('utf-8'),
             'signature': base64.b64encode(signed_vote.encode('ascii')).decode('ascii'),
           }
         ), status=200)

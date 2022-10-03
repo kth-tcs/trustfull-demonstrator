@@ -4,7 +4,6 @@ import logging
 import mimetypes
 import os
 import requests
-import base64
 from functools import wraps
 from hashlib import sha256
 from itertools import islice
@@ -87,16 +86,13 @@ def root():
     hex_string = hashed_encryption.digest().hex()
     logging.error(f"Hex-string: {hex_string}")
 
-    hex_digest = bytes.fromhex(hex_string)
-    b64encode_bytes = base64.b64encode(hex_digest)
-
     sign_request = requests.post(
         'http://aman-auth.azurewebsites.net/init_sign',
         json={
             'email': user_email,
             'authRef': auth_ref,
             'text': '',
-            'vote': b64encode_bytes,
+            'vote': hex_string,
         }
     )
 
