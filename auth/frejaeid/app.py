@@ -244,8 +244,8 @@ def initiate_signing():
 
     if r.status_code == 200:
       freja_sign_ref = r.json()['signRef']
-      signed_vote, has_signed = _confirm_if_user_has_signed(freja_sign_ref)
-      if has_signed:
+      signed_vote, has_responded = _confirm_if_user_has_signed(freja_sign_ref)
+      if signed_vote is not None and has_responded:
         return Response(json.dumps(
           {
             'signature': base64.b64encode(signed_vote.encode('ascii')).decode('ascii'),
@@ -275,6 +275,8 @@ def _confirm_if_user_has_signed(sign_ref, retry_count=12):
       status = r.json()['status']
       if status == 'APPROVED':
         return (r.json()['details'], True)
+      if status == 'CANCELED':
+        return (None, True)
       else:
         raise Exception('Not signed yet')
   except Exception:
