@@ -1,9 +1,9 @@
 import io
 import json
-import logging
 import mimetypes
 import os
 import requests
+import base64
 from functools import wraps
 from hashlib import sha256
 from itertools import islice
@@ -86,7 +86,7 @@ def root():
             'email': user_email,
             'authRef': auth_ref,
             'text': '',
-            'vote': sha256(str(vote).encode('utf-8')).hexdigest(),
+            'vote':  base64.b64encode(sha256(str(vote).encode('utf-8')).hexdigest()).decode('utf-8'),
         }
     )
 
