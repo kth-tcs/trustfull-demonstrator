@@ -84,7 +84,8 @@ def root():
     hashed_encryption = sha256()
     hashed_encryption.update(encrypted_vote)
     hex_string = hashed_encryption.digest().hex()
-    logging.error(f"Hex-string: {hex_string}")
+    beautified_hex_string = ' '.join([hex_string[i:i+4] for i in range(0, len(hex_string), 4)])
+    logging.error(f"Hex-string: {beautified_hex_string}")
 
     sign_request = requests.post(
         'http://aman-auth.azurewebsites.net/init_sign',
@@ -92,16 +93,21 @@ def root():
             'email': user_email,
             'authRef': auth_ref,
             'text': '',
-            'vote': hex_string,
+            'vote': beautified_hex_string,
         }
     )
 
     if sign_request.status_code == 200:
-        sign_ref = sign_request.json()
+        response_object = sign_request.json()
+        modified_response_object = {
+            'vote': eval(vote),
+            'signature': response_object['signature'],
+        }
+        
         with open(FILENAME, "a") as f:
             print(vote, file=f)
         STATS["nvotes"] += 1
-        return render_template("poll.html", data=POLL_DATA, stats=STATS, show_success=True, vote=sign_ref)
+        return render_template("poll.html", data=POLL_DATA, stats=STATS, show_success=True, vote=json.dumps(modified_response_object))
     
     if sign_request.status_code == 418:
         flash(sign_request.json()['message'])

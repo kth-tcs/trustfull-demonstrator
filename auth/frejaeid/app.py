@@ -229,8 +229,8 @@ def initiate_signing():
   user_email = request.get_json().get('email')
   vote = request.get_json().get('vote')
 
-  hex_digest = bytes.fromhex(vote)
-  b64encode_bytes_vote = base64.b64encode(hex_digest)
+  hash_bytes = bytes(vote, 'utf-8')
+  b64encode_bytes_vote = base64.b64encode(hash_bytes)
   b64encode_bytes_string = b64encode_bytes_vote.decode('utf-8')
 
   can_vote = _register_vote(auth_ref)
@@ -248,7 +248,6 @@ def initiate_signing():
       if has_signed:
         return Response(json.dumps(
           {
-            'vote': b64encode_bytes_string,
             'signature': base64.b64encode(signed_vote.encode('ascii')).decode('ascii'),
           }
         ), status=200)
