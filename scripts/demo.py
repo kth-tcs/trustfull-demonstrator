@@ -678,7 +678,7 @@ def azure_create_webapp(args):
             "--plan",
             service_plan,
             "--startup-file",
-            "gunicorn webdemo.app:app > /tmp/gunicorn.mylogs",
+            "gunicorn webdemo.app:app --timeout 240 > /tmp/gunicorn.mylogs",
             "--verbose",
         ],
         args.container,
