@@ -244,8 +244,8 @@ def initiate_signing():
       if has_signed:
         return Response(json.dumps(
           {
-            'vote': vote,
-            'signature': signed_vote,
+            'vote': base64.b64encode(vote.encode('ascii')).decode('ascii'),
+            'signature': base64.b64encode(signed_vote.encode('ascii')).decode('ascii'),
           }
         ), status=200)
       else:
