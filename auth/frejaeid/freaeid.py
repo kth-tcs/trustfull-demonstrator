@@ -49,9 +49,9 @@ class FrejaEID:
       },
       "dataToSignType": "SIMPLE_UTF8_TEXT",
       "dataToSign": {
-        "text": f"{vote}",
+        "text": f"{vote}"
       },
-      "signatureType": "SIMPLE",
+      "signatureType": "SIMPLE"
     }
     b64_encoded = cls._base64encoder(human_readable_body)
     frejaedi_body = f'initSignRequest={b64_encoded}'
