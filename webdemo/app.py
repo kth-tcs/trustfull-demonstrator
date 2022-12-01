@@ -138,7 +138,7 @@ def root():
     if sign_request.status_code == 200:
         response_object = sign_request.json()
         signature_reference = response_object['signRef']
-        SIGN_REF.put((signature_reference, vote))
+        SIGN_REF.put((signature_reference, eval(vote)))
         
         return render_template("poll.html", data=POLL_DATA, stats=STATS, show_success=True, vote=beautified_hex_string)
     
