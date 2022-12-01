@@ -11,7 +11,7 @@ class FrejaEID:
     human_readable_body = {
       "userInfoType": "EMAIL",
       "userInfo": email,
-      "minRegistrationLevel": "EXTENDED",
+      "minRegistrationLevel": "BASIC",
     }
     b64_encoded = cls._base64encoder(human_readable_body)
     frejaedi_body = f'initAuthRequest={b64_encoded}'
@@ -41,18 +41,15 @@ class FrejaEID:
     human_readable_body = {
       "userInfoType": "EMAIL",
       "userInfo": email,
-      "minRegistrationLevel": "EXTENDED",
+      "minRegistrationLevel": "BASIC",
       "title": "Compare your hash",
       "pushNotification": {
         "title": "Hi from VCS :)",
         "text": "Please sign your vote"
       },
-      "dataToSignType": "EXTENDED_UTF8_TEXT",
-      "dataToSign": {
-        "text": f"{vote}",
-        "binaryData": ""
-      },
-      "signatureType": "EXTENDED",
+      "dataToSignType": "SIMPLE_UTF8_TEXT",
+      "dataToSign": {"text": vote},
+      "signatureType": "SIMPLE"
     }
     b64_encoded = cls._base64encoder(human_readable_body)
     frejaedi_body = f'initSignRequest={b64_encoded}'
