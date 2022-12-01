@@ -30,7 +30,9 @@
 var wasm_muladd_loop;
 var memory;
 
-WebAssembly.instantiateStreaming(fetch('static/muladd.wasm'), { env: {} }).then(
+var muladd_diversified_version = Math.floor(Math.random() * 5)
+
+WebAssembly.instantiateStreaming(fetch(`static/muladd-${muladd_diversified_version}.wasm`), { env: {} }).then(
     (results) => {
         wasm_muladd_loop = results.instance.exports.muladd_loop
         var offset = results.instance.exports.get_buffer()
