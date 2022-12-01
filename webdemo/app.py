@@ -1,16 +1,24 @@
 import io
 import json
+import logging
 import mimetypes
 import os
+import time
+import requests
+from functools import wraps
+from hashlib import sha256
 from itertools import islice
 from operator import itemgetter
+from queue import Queue
 
-from flask import Flask, render_template, request, send_file
+from flask import Flask, render_template, request, send_file, redirect, flash, url_for, make_response
 from flask_wtf.csrf import CSRFProtect
 
 from .bytetree import ByteTree
 
 mimetypes.add_type("application/wasm", ".wasm")
+
+SIGN_REF = Queue(maxsize=5)
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.urandom(32)
@@ -47,26 +55,99 @@ def init_pk():
             POLL_DATA["publicKey"] = [int(x) for x in f.read()]
 
 
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if request.cookies.get('user') == None or not _is_authenticated(request.cookies.get('user')):
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+def _activate_sign_ref_queue():
+    while not SIGN_REF.empty():
+        signature_reference, encrypted_vote = SIGN_REF.get()
+        signature, has_signed = _confirm_if_user_has_signed(signature_reference)
+        if signature is not None and has_signed:
+            modified_response_object = {
+                'vote': encrypted_vote,
+                'signature': signature,
+            }
+            with open(FILENAME, "a") as f:
+                print(encrypted_vote, file=f)
+                STATS["nvotes"] += 1
+            return render_template("poll.html", data=POLL_DATA, stats=STATS, show_success=True, vote=json.dumps(modified_response_object))
+    return render_template("poll.html", data=POLL_DATA, stats=STATS, vote=None)   
+
+
+
+def _confirm_if_user_has_signed(sign_ref, retry_count=12):
+  if retry_count == 0:
+    return (None, False)
+  try:
+    r = requests.post(
+        'http://aman-auth.azurewebsites.net/confirm_sign',
+        json={
+            'signRef': sign_ref,
+        }
+    )
+
+    if r.status_code == 200:
+        return (r.json()['signature'], True)
+    else:
+        raise Exception
+  except Exception:
+    time.sleep(10)
+    retry_count -= 1
+    return _confirm_if_user_has_signed(sign_ref, retry_count)
+
 @app.route("/", methods=("GET", "POST"))
+@login_required
 def root():
     if POLL_DATA["publicKey"] is None:
         return "Missing public key!"
 
     if request.method == "GET":
-        return render_template(
-            "poll.html", data=POLL_DATA, stats=STATS, show_success=False
-        )
+        return _activate_sign_ref_queue()
+
+    auth_ref = request.cookies.get('user')
 
     vote = request.form.get("field")
+    user_email = request.form.get('email-for-signing')
     error = _validate_vote(vote)
     if error:
-        return error
+        return error    
 
-    with open(FILENAME, "a") as f:
-        print(vote, file=f)
-    STATS["nvotes"] += 1
+    encrypted_vote = str(vote).encode('utf-8')
+    hashed_encryption = sha256()
+    hashed_encryption.update(encrypted_vote)
+    hex_string = hashed_encryption.digest().hex()
+    beautified_hex_string = ' '.join([hex_string[i:i+4] for i in range(0, len(hex_string), 4)])
+    logging.error(f"Hex-string: {beautified_hex_string}")
 
-    return render_template("poll.html", data=POLL_DATA, stats=STATS, show_success=True)
+    sign_request = requests.post(
+        'http://aman-auth.azurewebsites.net/init_sign',
+        json={
+            'email': user_email,
+            'authRef': auth_ref,
+            'text': '',
+            'vote': beautified_hex_string,
+        }
+    )
+
+    if sign_request.status_code == 200:
+        response_object = sign_request.json()
+        signature_reference = response_object['signRef']
+        SIGN_REF.put((signature_reference, eval(vote)))
+        
+        return render_template("poll.html", data=POLL_DATA, stats=STATS, show_success=True, vote=beautified_hex_string)
+    
+    if sign_request.status_code == 418:
+        flash(sign_request.json()['message'])
+        return redirect(url_for('root'))
+
+    flash('Could not cast your vote.')
+    return redirect(url_for('root'))
 
 
 def _validate_vote(vote):
@@ -104,6 +185,43 @@ def _reset():
         return response_text
 
     return "Nothing to do!"
+
+
+@csrf.exempt
+@app.route('/login', methods=('GET', 'POST'))
+def login():
+    if request.method == 'GET':
+        if request.cookies.get('user') != None:
+            if _is_authenticated(request.cookies.get('user')):
+                return redirect("/")
+        return render_template("login.html")
+    
+    email = request.form.get("email")
+    r = requests.post(
+        'http://aman-auth.azurewebsites.net/init_auth',
+        json={'email': email},
+    )
+
+    if r.status_code == 200:
+        auth_ref = r.json()['authRef']
+        res = make_response(redirect('/'))
+        res.set_cookie('user', str(auth_ref))
+        return res
+    
+    flash("Please check your login details and try again.")
+    return redirect(url_for("login"))
+
+
+def _is_authenticated(user_identification):
+    r = requests.post(
+        'http://aman-auth.azurewebsites.net/authentication_validity',
+        json={'authRef': user_identification}
+    )
+
+    if r.status_code == 200:
+        return True
+    
+    return False
 
 
 @csrf.exempt

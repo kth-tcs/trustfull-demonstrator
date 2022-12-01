@@ -1,13 +1,8 @@
-<!DOCTYPE html>
-<html>
+{% extends "base.html" %}
+{% block title %}{{ data.question }}{% endblock %}
 
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
-        integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
-    <title>{{ data.question }}</title>
-</head>
+
+{% block content %}
 
 <style>
 .hidden {
@@ -17,130 +12,136 @@
 }
 </style>
 
-<body style="background-color:powderblue;">
-    <div class="container">
-        <div class="card-group">
-            <div class="card">
-                <div class="card-body">
-                    <form action="/" method="POST" onsubmit="return captureForm()">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-                        <h2 class="card-title">{{ data.question }}</h2>
-                        <ul class="list-group list-group-flush">
-                            <div class="card-header">Candidates</div>
-                            {% for e in data.fields %}
-                            <li class="list-group-item">
-                                <div class="radio">
-                                    <label>
-                                        <input class="candidate" id="{{ e }}" type="radio" name="field" value="{{ e }}"> {{ e }}<br>
-                                    </label>
-                                </div>
-                            </li>
-                            {% endfor %}
-                        </ul>
-                        <div class="card-body">
-                            <button type="submit" class="btn btn-primary">Vote</button>
-                            <a href="/ciphertexts" class="btn btn-secondary">Ciphertexts</a>
-                            <a href="/results" class="btn btn-secondary">Results</a>
-                            <a href="/publicKey" class="btn btn-secondary">Public Key</a>
+<div class="card-group">
+    <div class="card">
+        <div class="card-body">
+            {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div class="alert alert-danger">
+                    {{ messages[0] }}
+                </div>
+            {% endif %}
+            {% endwith %}
+            <form action="/" method="POST" onsubmit="return captureForm()">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                <h2 class="card-title">{{ data.question }}</h2>
+                <ul class="list-group list-group-flush">
+                    <div class="card-header">Candidates</div>
+                    {% for e in data.fields %}
+                    <li class="list-group-item">
+                        <div class="radio">
+                            <label>
+                                <input class="candidate" id="{{ e }}" type="radio" name="field" value="{{ e }}"> {{ e }}<br>
+                            </label>
                         </div>
-                    </form>
-                </div>
-                <div class="card-footer text-muted">
-                    {{ stats.nvotes }} vote{{ '' if stats.nvotes == 1 else 's' }} so far
-                </div>
-            </div>
-            <div class="card">
+                    </li>
+                    {% endfor %}
+                    <input required type="email" class="form-control" name="email-for-signing" id="email-for-signing" placeholder="Enter email">
+                </ul>
                 <div class="card-body">
-                    <h2 class="card-title">About</h2>
-                    <p class="card-text"> Demo election web interface using the <a
-                            href="https://github.com/kth-tcs/verificatum-vjsc/">Verificatum JavaScript Cryptographic
-                            library</a> for client-side encryption.</p>
-                    <p class="card-text">Encryption must be done with a provided public key which is produced by the <a
-                            href="https://www.verificatum.org/">Verificatum</a> mix network.</p>
-                    <p class="card-text">When the &quot;submit&quot; button is pressed, the form&#39;s data is modified
-                        and the
-                        currently selected option is encrypted using the public key and some randomness. The web
-                        server is then unable to decrypt the vote. Instead, the mix network that produced the public
-                        key must jointly decrypt and shuffle the collected votes.</p>
-                    <p class="card-text"><strong>WARNING</strong> this is only for demonstration purposes. Important
-                        safety features are missing. For example, no measures are taken to counter
-                        <em>malleability</em> attacks. For more details, please read the documentation at the official
-                        Verificatum <a href="https://www.verificatum.org/">webpage</a>.</p>
+                    <button type="submit" class="btn btn-primary">Vote</button>
+                    <a href="/ciphertexts" class="btn btn-secondary">Ciphertexts</a>
+                    <a href="/results" class="btn btn-secondary">Results</a>
+                    <a href="/publicKey" class="btn btn-secondary">Public Key</a>
                 </div>
-                <div class="card-footer text-muted">
-                    Made for the <a href="https://www.trustfull.proj.kth.se/">Trustfull project</a>
-                </div>
-            </div>
+            </form>
         </div>
-        <div class="alert alert-success" id="success" {% if not show_success %} style="display: none;" {% endif %}>
-            <strong>Success!</strong> Thank you for submitting your vote.
+        {% if vote %}
+            <div>
+                {{ vote }}
+            </div>
+        {% endif %}
+        <div class="card-footer text-muted">
+            {{ stats.nvotes }} vote{{ '' if stats.nvotes == 1 else 's' }} so far
         </div>
     </div>
+    <div class="card">
+        <div class="card-body">
+            <h2 class="card-title">About</h2>
+            <p class="card-text"> Demo election web interface using the <a
+                    href="https://github.com/kth-tcs/verificatum-vjsc/">Verificatum JavaScript Cryptographic
+                    library</a> for client-side encryption.</p>
+            <p class="card-text">Encryption must be done with a provided public key which is produced by the <a
+                    href="https://www.verificatum.org/">Verificatum</a> mix network.</p>
+            <p class="card-text">When the &quot;submit&quot; button is pressed, the form&#39;s data is modified
+                and the
+                currently selected option is encrypted using the public key and some randomness. The web
+                server is then unable to decrypt the vote. Instead, the mix network that produced the public
+                key must jointly decrypt and shuffle the collected votes.</p>
+            <p class="card-text"><strong>WARNING</strong> this is only for demonstration purposes. Important
+                safety features are missing. For example, no measures are taken to counter
+                <em>malleability</em> attacks. For more details, please read the documentation at the official
+                Verificatum <a href="https://www.verificatum.org/">webpage</a>.</p>
+        </div>
+        <div class="card-footer text-muted">
+            Made for the <a href="https://www.trustfull.proj.kth.se/">Trustfull project</a>
+        </div>
+    </div>
+</div>
+<div class="alert alert-success" id="success" {% if not show_success %} style="display: none;" {% endif %}>
+    <strong>Success!</strong> Thank you for submitting your vote.
+</div>
+<script>
+    window.WASM_PATH = "{{url_for('static', filename='muladd.wasm')}}"
+</script>
+<script src="{{url_for('static', filename='min-vjsc-1.1.1.js')}}"></script>
+<script>
+    // Hide success alert window
+    setTimeout(function() {
+        window.success.className += ' hidden';
+    }, 1000);
 
-    <script>
-        window.WASM_PATH = "{{url_for('static', filename='muladd.wasm')}}"
-    </script>
-    <script src="{{url_for('static', filename='min-vjsc-1.1.1.js')}}"></script>
-    <script>
-        // Hide success alert window
-        setTimeout(function() {
-            window.success.className += ' hidden';
-        }, 1000);
-
-        function captureForm() {
-            for (const candidate of document.getElementsByClassName('candidate')) {
-                if (candidate.checked) {
-                    var found = false;
-                    {% for e in data.fields %}
-                    found |= candidate.value === "{{ e }}";
-                    {% endfor %}
-                    if (!found) {
-                        console.error("Candidate does not much any expected value");
-                        return false;
-                    }
-
-                    document.getElementById(candidate.value).value = encrypt(candidate.value);
-                    return true;
+    function captureForm() {
+        for (const candidate of document.getElementsByClassName('candidate')) {
+            if (candidate.checked) {
+                var found = false;
+                {% for e in data.fields %}
+                found |= candidate.value === "{{ e }}";
+                {% endfor %}
+                if (!found) {
+                    console.error("Candidate does not much any expected value");
+                    return false;
                 }
-            }
 
-            console.error('No candidate selected');
-            return false;
+                document.getElementById(candidate.value).value = encrypt(candidate.value);
+                return true;
+            }
         }
 
-        function encrypt(s) {
-            function initRandomSource() {
-                const randomSource = new verificatum.crypto.RandomDevice();
-                const seed = randomSource.getBytes(verificatum.crypto.SHA256PRG.seedLength);
-                const ret = new verificatum.crypto.SHA256PRG();
-                ret.setSeed(seed);
-                return ret;
-            }
+        console.error('No candidate selected');
+        return false;
+    }
 
-            const randomSource = initRandomSource();
-            const WIDTH = 1;  // Depends on vmni configuration
-
-            const bt = verificatum.eio.ByteTree.readByteTreeFromByteArray({{data.publicKey}});
-
-            console.assert(verificatum.util.byteArrayToAscii(bt.value[0].value[0].value).endsWith('ECqPGroup'));
-            const keyPGroup = verificatum.arithm.ECqPGroup.fromByteTree(bt.value[0].value[1]);
-            const fullPublicKey = new verificatum.arithm.PPGroup(keyPGroup, 2).toElement(bt.value[1]);
-            const eg = new verificatum.crypto.ElGamal(true, keyPGroup, randomSource, 20);
-            const wpk = eg.widePublicKey(fullPublicKey, WIDTH);
-
-            // Encode message
-            const ascii_bytes = s.split('').map(x => x.charCodeAt(0));
-            const encoded = wpk.pGroup.project(1).encode(ascii_bytes);
-            const encrypted = eg.encrypt(wpk, encoded);
-
-            // XXX: why?
-            // In format expected by VMN
-            const encrypted0 = encrypted.values[0].toByteTree().toByteArray();
-            const encrypted1 = encrypted.values[1].toByteTree().toByteArray();
-            return JSON.stringify([encrypted0, encrypted1]);
+    function encrypt(s) {
+        function initRandomSource() {
+            const randomSource = new verificatum.crypto.RandomDevice();
+            const seed = randomSource.getBytes(verificatum.crypto.SHA256PRG.seedLength);
+            const ret = new verificatum.crypto.SHA256PRG();
+            ret.setSeed(seed);
+            return ret;
         }
-    </script>
 
-</body>
+        const randomSource = initRandomSource();
+        const WIDTH = 1;  // Depends on vmni configuration
 
-</html>
+        const bt = verificatum.eio.ByteTree.readByteTreeFromByteArray({{data.publicKey}});
+
+        console.assert(verificatum.util.byteArrayToAscii(bt.value[0].value[0].value).endsWith('ECqPGroup'));
+        const keyPGroup = verificatum.arithm.ECqPGroup.fromByteTree(bt.value[0].value[1]);
+        const fullPublicKey = new verificatum.arithm.PPGroup(keyPGroup, 2).toElement(bt.value[1]);
+        const eg = new verificatum.crypto.ElGamal(true, keyPGroup, randomSource, 20);
+        const wpk = eg.widePublicKey(fullPublicKey, WIDTH);
+
+        // Encode message
+        const ascii_bytes = s.split('').map(x => x.charCodeAt(0));
+        const encoded = wpk.pGroup.project(1).encode(ascii_bytes);
+        const encrypted = eg.encrypt(wpk, encoded);
+
+        // XXX: why?
+        // In format expected by VMN
+        const encrypted0 = encrypted.values[0].toByteTree().toByteArray();
+        const encrypted1 = encrypted.values[1].toByteTree().toByteArray();
+        return JSON.stringify([encrypted0, encrypted1]);
+    }
+</script>
+{% endblock %}

@@ -192,7 +192,7 @@ def parse_args():
     )
     deploy_parser.add_argument(
         "--ssh-key",
-        default="ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDpaG3VTq+lsrcWeD4+jdq4lnZGu40WPQN04DOACAkMQsq8PixzZK00UWS9rltGAg64jtnkrsr+omVPfS6979i8ZFG1mEZXTJoc+9T7QRHxWbuMOYiQw07cWJPXsnYAbTqew1IxvB6K4+QMSP20OswrH6EmVTgU1GG9OC/++s5lVaGy6x7gPLofmY4F3jrkMPiSVz9i1cxBNTMDOnQ9lVobbOh3BkCFB75owEX9+R93MfPAp4L4GPII9lUgClYvhaWPZCwfWmPW34MBJB/s+UO//cpYk23AJgZz7dmz9OSjnN/reXmBIHV5nC68NylEH55ZOXR9VYWMKyubmZBpkZe2BN07ZhyY1a1Mz2OUgxieXvIqvH3Um7hujmmh4jmMck6VMLRSud4OxiyAqow+v7J0XyIriSvrcC0o0RTvECDCor/eQnRuQhp8i5N9uKcF1dRSlRRdud1kHgLndPP67tQp+yjCS1E4Uye5O+tBND9G5ReXqQoCMtMHWvMTaX/wmCfeiaPrhwBo7wmXKqmdC3ylaRkYCs6YWPlJrRqQkOaZ1I/tnuD4ElQqAm6fH7z7ybguL5JvKUbOvSbagLUTK+Hf7jGoXU7aQOOODNHKM8kjrnoD0siJTPrd/BiWS0bNruMHacQ/4vJ2YGX218Tnf19fHI7m6kB3/KAwtegqZ5eO3w== Verificatum azure server key",
+        default="ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDa/BpNH8q1BYlLFyYGZT0nZxAtHXMUwsjVYkpwKgyFMd7HWVsXw5hRAw/UyqP9OF4bwF+VwMG4uK8fyyI9EKoCjMfYqq1yU0Pcs9uK5sApcuWd2IeIZYZA/biScrG1WqLKpQjESII9Y7Lpu+7RLJT81t2ID2mtqlqCw/m/Ayazf7UxHWq/OqQW7I2W/7B1fQAMkcXE28S0ElrxqDIW8IJOFhhM3HJK4tASL74xkVUE/RIn3a7pxtfJqYQDDX2EN37jalQWEZpG+0MFIO/iX800PR2wl0PhPwU6BgyIKv2Rs6HHnSNF4eXudHqsOKk4YUX4BTxi1iF7/efEfwR2uTEy1r+siZkb/LxttdUN8ASx6F7cW1Wi99h//4vhIWIRj/iUgK2xL3nTOgIFAbBL5mdtVDtM5RornXHiALb7kbaIYEQljV0HaEHOVCdqOiD6zOgD2/doa0/1DFtWzArEpdYCMDADOkZdYTQWgRoAIRE0p2M7goZRUpmlzOkVF7lteec= aman@work",
         help="Public key to use for ssh login",
         metavar="KEY",
     )
@@ -796,9 +796,10 @@ set -x
 
 export DEBIAN_FRONTEND=noninteractive
 
-sudo apt-get update -q
-sudo apt-get full-upgrade -y
-sudo apt-get install -y \
+sudo apt update -q
+sudo apt upgrade -y
+sudo apt autoremove -y
+sudo apt install -y \
     tmux vim wget zip \
     build-essential m4 cpp gcc make libtool automake autoconf libgmp-dev openjdk-11-jdk
 
