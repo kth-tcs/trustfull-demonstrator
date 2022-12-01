@@ -3,7 +3,6 @@ import json
 import requests
 from flask import Flask, request, Response
 
-# from auth.frejaeid.sign_confirmation import BackgroundThreadFactory, TASKS_QUEUE
 from auth.frejaeid import urls
 from auth.frejaeid.payload import FrejaEID
 from auth.frejaeid.models import db, User
