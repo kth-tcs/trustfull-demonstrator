@@ -109,6 +109,9 @@ automatically authenticate your connection to the servers with the decrypted key
 You can also [create your own keypair](https://docs.microsoft.com/en-us/azure/virtual-machines/ssh-keys-portal) and
 specify its public key with the `--ssh-key` flag.
 
+Once the deployment is completed, you can monitor the mixnet servers (prefixed by `vmn-`) and `vmn-webapp` (GUI to cast vote)
+at https://portal.azure.com/.
+
 ### Starting the election process
 
 The subcommand `start` of [`scripts/demo.py`](scripts/demo.py) initializes the voting process across the created Azure
