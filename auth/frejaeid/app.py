@@ -10,26 +10,6 @@ from auth.frejaeid.models import db, User
 
 
 app = Flask(__name__, static_url_path='/static')
-# vote_signing_thread = BackgroundThreadFactory.create()
-
-# if not (app.debug or os.environ.get('FLASK_ENV') == 'development') or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
-#   vote_signing_thread.start()
-
-#   original_handler = signal.getsignal(signal.SIGINT)
-
-#   def sigint_handler(signum, frame):
-#     vote_signing_thread.stop()
-
-#     # wait until thread is finished
-#     if vote_signing_thread.is_alive():
-#         vote_signing_thread.join()
-
-#     original_handler(signum, frame)
-
-#   try:
-#     signal.signal(signal.SIGINT, sigint_handler)
-#   except ValueError as e:
-#     print(f'{e}. Continuing execution...')
 
 # Create an in-memory database
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
