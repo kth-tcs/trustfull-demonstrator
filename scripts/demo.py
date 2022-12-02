@@ -896,10 +896,10 @@ set -x
 
 export DEBIAN_FRONTEND=noninteractive
 
-sudo apt update -q
-sudo apt upgrade -y
-sudo apt autoremove -y
-sudo apt install -y \
+sudo apt-get update -q
+sudo apt-get upgrade -y
+sudo apt-get autoremove -y
+sudo apt-get install -y \
     tmux vim wget zip \
     build-essential m4 cpp gcc make libtool automake autoconf libgmp-dev openjdk-11-jdk
 
