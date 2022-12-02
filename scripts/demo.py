@@ -295,7 +295,9 @@ def deploy_main(args):
         if resources:
             azure_delete(resources, args.container)
 
-    azure_create_webapp(args)
+    service_plan_name = azure_create_service_plan(args)
+    azure_create_webapp(args, service_plan_name)
+    azure_create_auth(args, service_plan_name)
 
     azure_create_nsg(args)
     names = [args.name + str(idx) for idx in range(1, 1 + args.count)]
@@ -634,11 +636,8 @@ def azure_create_vm(name, args):
         args.container,
     )
 
-
-def azure_create_webapp(args):
-    name = args.name + "-webapp"
-    service_plan = name + "-plan"
-
+def azure_create_service_plan(args):
+    service_plan_name = f'{args.name}-plan'
     azure_call(
         [
             "az",
@@ -648,17 +647,22 @@ def azure_create_webapp(args):
             "--tags",
             args.tag,
             "--sku",
-            "F1",
+            "B1",
             "--location",
             "northeurope",
             "--is-linux",
             "-g",
             args.group,
             "--name",
-            service_plan,
+            service_plan_name,
         ],
         args.container,
     )
+    return service_plan_name
+
+
+def azure_create_webapp(args, service_plan_name):
+    name = args.name + "-webapp"
 
     return azure_call(
         [
@@ -676,7 +680,7 @@ def azure_create_webapp(args):
             "--runtime",
             "python|3.8",
             "--plan",
-            service_plan,
+            service_plan_name,
             "--startup-file",
             "gunicorn webdemo.app:app > /tmp/gunicorn.mylogs",
             "--verbose",
@@ -684,6 +688,32 @@ def azure_create_webapp(args):
         args.container,
     )
 
+def azure_create_auth(args, service_plan_name):
+    name = f'aman-auth'
+
+    azure_call(
+        [
+            "az",
+            "webapp",
+            "create",
+            "--name",
+            name,
+            "-g",
+            args.group,
+            "--tags",
+            args.tag,
+            "--deployment-source-url",
+            "https://github.com/kth-tcs/trustfull-demonstrator/",
+            "--runtime",
+            "python|3.8",
+            "--plan",
+            service_plan_name,
+            "--startup-file",
+            "gunicorn auth.frejaeid.app:app > /tmp/gunicorn.mylogs",
+            "--verbose",
+        ],
+        args.container,
+    )
 
 def azure_create_nsg(args):
     nsg = args.name + "-nsg"
