@@ -198,7 +198,7 @@ def parse_args():
     )
     deploy_parser.add_argument(
         "--image",
-        default="Canonical:UbuntuServer:18.04-LTS:latest",
+        default="Canonical:0001-com-ubuntu-server-jammy:22_04-lts:latest",
         help="The name of the operating system image. See `az vm create --help` for more",
     )
     deploy_parser.add_argument(
@@ -820,7 +820,7 @@ MinProtocol = TLSv1.2
 CipherString = DEFAULT:@SECLEVEL=1
 EOF
 
-# https://www.verificatum.org/html/install_vmn.html#ubuntu_18.04.4
+# https://www.verificatum.org/html/install_vmn.html#ubuntu_22.04.1
 # Fetch, build, and install VMN as a single demonstration package.
 OPENSSL_CONF="$HOME/ssl.conf" wget https://www.verificatum.org/files/verificatum-vmn-3.1.0-full.tar.gz
 tar xvfz verificatum-vmn-3.1.0-full.tar.gz
