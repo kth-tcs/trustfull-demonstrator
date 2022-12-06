@@ -896,10 +896,10 @@ set -x
 
 export DEBIAN_FRONTEND=noninteractive
 
-sudo apt-get update -q
-sudo apt-get upgrade -y
-sudo apt-get autoremove -y
-sudo apt-get install -y \
+sudo apt-get -qq update
+sudo apt-get -qq upgrade -y
+sudo apt-get -qq autoremove -y
+sudo apt-get -qq install -y \
     tmux vim wget zip \
     build-essential m4 cpp gcc make libtool automake autoconf libgmp-dev openjdk-11-jdk
 
@@ -923,7 +923,7 @@ EOF
 # https://www.verificatum.org/html/install_vmn.html#ubuntu_22.04.1
 # Fetch, build, and install VMN as a single demonstration package.
 OPENSSL_CONF="$HOME/ssl.conf" wget https://www.verificatum.org/files/verificatum-vmn-3.1.0-full.tar.gz
-tar xvfz verificatum-vmn-3.1.0-full.tar.gz
+tar xfz verificatum-vmn-3.1.0-full.tar.gz
 rm verificatum*.tar.gz
 cd verificatum-vmn-3.1.0-full
 make install
