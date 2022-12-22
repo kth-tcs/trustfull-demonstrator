@@ -208,7 +208,7 @@ def login():
         res.set_cookie('user', str(auth_ref))
         return res
     
-    flash("Please check your login details and try again.")
+    flash(str(r.text))
     return redirect(url_for("login"))
 
 
