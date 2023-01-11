@@ -6,10 +6,12 @@ import os
 import string
 from collections import Counter
 from itertools import chain
+from pathlib import Path
 from subprocess import Popen
 from subprocess import call as subprocess_call
 from subprocess import check_output
 
+DEMO_ELECTION = Path(os.path.dirname(__file__)).parent.joinpath('demoElection')
 
 def main(args):
     print(args)
@@ -51,7 +53,7 @@ def vmni_common_parameters(args):
             "-thres",
             args.threshold,
             "stub.xml",
-        ]
+        ], cwd=DEMO_ELECTION
     )
 
 
@@ -66,7 +68,7 @@ def vmni_individual_protocol_info_files(args):
         http = args.http_format.format(ip=ip, idx=idx, port=args.http_port + idx)
         hint = args.hint_format.format(ip=ip, idx=idx, port=args.hint_port + idx)
         if not args.dry_run:
-            os.makedirs(f"{idx}", exist_ok=True)
+            os.makedirs(os.path.join(DEMO_ELECTION, str(idx)), exist_ok=True)
         args.call(
             [
                 "vmni",
@@ -82,7 +84,7 @@ def vmni_individual_protocol_info_files(args):
                 f"{idx}/dir",
                 priv,
                 prot,
-            ]
+            ], cwd=DEMO_ELECTION
         )
 
 
@@ -93,7 +95,7 @@ def vmni_merge_protocol_info_files(args):
     args.call(
         ["vmni", "-merge"]
         + [f"{idx}/protInfo.xml" for idx in range(args.num_parties)]
-        + ["merged.xml"]
+        + ["merged.xml"], cwd=DEMO_ELECTION
     )
 
 
@@ -105,20 +107,21 @@ def vmn(args):
         args.call(
             ["vmn", "-keygen", "privInfo.xml", "../merged.xml", "publicKey"],
             popen=True,
-            cwd=str(idx),
+            cwd=os.path.join(DEMO_ELECTION, str(idx)),
         )
         for idx in range(args.num_parties)
     ]
     # return [p.communicate() for p in processes]
-    for p in processes:
-        p.communicate()
+    # TODO: Was impeding the start process
+    # for p in processes:
+    #     p.communicate()
 
     if args.demo:
         args.call(["vmnd", "-ciphs", "0/publicKey", 100, "ciphertexts"])
     elif args.dry_run:
         pass
     elif args.post:
-        with open("0/publicKey", "rb") as f:
+        with open(os.path.join(DEMO_ELECTION, "0/publicKey"), "rb") as f:
             request("POST", f"{args.post}/publicKey", files={"publicKey": f})
         input("Vote and press Enter ")
         with open("ciphertexts", "wb") as f:
@@ -139,7 +142,7 @@ def vmn(args):
                 "plaintexts",
             ],
             popen=True,
-            cwd=str(idx),
+            cwd=os.path.join(DEMO_ELECTION, str(idx)),
         )
         for idx in range(args.num_parties)
     ]
