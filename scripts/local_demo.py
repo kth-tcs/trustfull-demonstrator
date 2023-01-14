@@ -7,7 +7,7 @@ import string
 from collections import Counter
 from itertools import chain
 from pathlib import Path
-from subprocess import Popen
+from subprocess import Popen, PIPE
 from subprocess import call as subprocess_call
 from subprocess import check_output
 
@@ -40,21 +40,24 @@ def vmni_common_parameters(args):
     """See:
     1. Agree on common parameters
     """
-    args.call(
-        [
-            "vmni",
-            "-prot",
-            "-sid",
-            args.session_id,
-            "-name",
-            args.name,
-            "-nopart",
-            args.num_part,
-            "-thres",
-            args.threshold,
-            "stub.xml",
-        ], cwd=DEMO_ELECTION
-    )
+    for idx,_ in enumerate(args.ips):
+        if not args.dry_run:
+            os.makedirs(os.path.join(DEMO_ELECTION, str(idx)), exist_ok=True)
+        args.call(
+            [
+                "vmni",
+                "-prot",
+                "-sid",
+                args.session_id,
+                "-name",
+                args.name,
+                "-nopart",
+                args.num_part,
+                "-thres",
+                args.threshold,
+                "stub.xml",
+            ], cwd=os.path.join(DEMO_ELECTION, str(idx))
+        )
 
 
 def vmni_individual_protocol_info_files(args):
@@ -63,8 +66,8 @@ def vmni_individual_protocol_info_files(args):
     """
     for idx, ip in enumerate(args.ips):
         name = args.party_format.format(idx=idx)
-        priv = f"{idx}/privInfo.xml"
-        prot = f"{idx}/protInfo.xml"
+        priv = "privInfo.xml"
+        prot = "protInfo.xml"
         http = args.http_format.format(ip=ip, idx=idx, port=args.http_port + idx)
         hint = args.hint_format.format(ip=ip, idx=idx, port=args.hint_port + idx)
         if not args.dry_run:
@@ -80,11 +83,9 @@ def vmni_individual_protocol_info_files(args):
                 "-hint",
                 hint,
                 "stub.xml",
-                "-dir",
-                f"{idx}/dir",
                 priv,
                 prot,
-            ], cwd=DEMO_ELECTION
+            ], cwd=os.path.join(DEMO_ELECTION, str(idx))
         )
 
 
@@ -111,10 +112,9 @@ def vmn(args):
         )
         for idx in range(args.num_parties)
     ]
-    # return [p.communicate() for p in processes]
-    # TODO: Was impeding the start process
-    # for p in processes:
-    #     p.communicate()
+
+    for p in processes:
+        p.communicate()
 
     if args.demo:
         args.call(["vmnd", "-ciphs", "0/publicKey", 100, "ciphertexts"])
@@ -124,7 +124,7 @@ def vmn(args):
         with open(os.path.join(DEMO_ELECTION, "0/publicKey"), "rb") as f:
             request("POST", f"{args.post}/publicKey", files={"publicKey": f})
         input("Vote and press Enter ")
-        with open("ciphertexts", "wb") as f:
+        with open(os.path.join(DEMO_ELECTION, "ciphertexts"), "wb") as f:
             r = request("GET", f"{args.post}/ciphertexts")
             f.write(r.content)
     else:
@@ -163,6 +163,20 @@ def request(method, *args, **kwargs):
 
 VALID_CHARS = " -_.,()" + string.ascii_letters + string.digits
 
+def import_bytetree():
+    path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../webdemo')
+    try:
+        sys.path.append(path)
+        from bytetree import byte_array_byte_tree_to_json
+
+        def vbt_call(fname):
+            with open(fname, "rb") as f:
+                return json.loads(byte_array_byte_tree_to_json(bytearray(f.read())))
+
+        return vbt_call
+    except ImportError as e:
+        print("Could not load bytetree.py that should have been located in {path}")
+        raise e
 
 def vbt():
     """
@@ -179,11 +193,7 @@ def vbt():
                 if c in VALID_CHARS
             ),
             # vbt converts the RAW plaintexts to JSON.
-            json.loads(
-                # Read output from vbt but discard null bytes
-                # TODO: fix this in vbt
-                bytes(filter(bool, check_output(["vbt", "0/plaintexts"]))).decode()
-            ),
+            import_bytetree()(os.path.join(DEMO_ELECTION, "1", "plaintexts")),
         )
     )
 
