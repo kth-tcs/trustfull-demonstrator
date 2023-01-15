@@ -10,6 +10,7 @@ from hashlib import sha256
 from itertools import islice
 from operator import itemgetter
 from queue import Queue
+from urllib.parse import urlparse
 
 from flask import Flask, render_template, request, send_file, redirect, flash, url_for, make_response
 from flask_wtf.csrf import CSRFProtect
@@ -19,6 +20,15 @@ from .bytetree import ByteTree
 mimetypes.add_type("application/wasm", ".wasm")
 
 SIGN_REF = Queue(maxsize=5)
+
+def get_auth_server_url():
+    parsed_url = urlparse(os.getenv('AUTH_SERVER_URL'))
+
+    if parsed_url.port is None:
+        return f'{parsed_url.scheme}://{parsed_url.hostname}'
+    
+    return f'{parsed_url.scheme}://{parsed_url.hostname}:{parsed_url.port}'
+
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.urandom(32)
@@ -86,7 +96,7 @@ def _confirm_if_user_has_signed(sign_ref, retry_count=12):
     return (None, False)
   try:
     r = requests.post(
-        'http://aman-auth.azurewebsites.net/confirm_sign',
+        f'{get_auth_server_url()}/confirm_sign',
         json={
             'signRef': sign_ref,
         }
@@ -126,7 +136,7 @@ def root():
     logging.error(f"Hex-string: {beautified_hex_string}")
 
     sign_request = requests.post(
-        'http://aman-auth.azurewebsites.net/init_sign',
+        f'{get_auth_server_url}/init_sign',
         json={
             'email': user_email,
             'authRef': auth_ref,
@@ -198,7 +208,7 @@ def login():
     
     email = request.form.get("email")
     r = requests.post(
-        'http://aman-auth.azurewebsites.net/init_auth',
+        f'{get_auth_server_url()}/init_auth',
         json={'email': email},
     )
 
@@ -214,7 +224,7 @@ def login():
 
 def _is_authenticated(user_identification):
     r = requests.post(
-        'http://aman-auth.azurewebsites.net/authentication_validity',
+        f'{get_auth_server_url()}/authentication_validity',
         json={'authRef': user_identification}
     )
 
