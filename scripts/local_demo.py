@@ -175,7 +175,7 @@ def import_bytetree():
 
         return vbt_call
     except ImportError as e:
-        print("Could not load bytetree.py that should have been located in {path}")
+        print(f"Could not load bytetree.py that should have been located in {path}")
         raise e
 
 def vbt():
