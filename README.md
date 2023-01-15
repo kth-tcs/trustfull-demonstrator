@@ -232,3 +232,40 @@ docker run -it --rm -u $(id -u ${USER}):$(id -g ${USER}) -v "$PWD:/workdir" -w /
 See [CROW's README](https://github.com/KTH/slumps/blob/master/crow/README.md) for instructions on running the
 superdiversifier with a C file as input. The output bitcode files can be compiled with the same instruction to
 WebAssembly in order to be served from the vote collecting server.
+
+## Local setup
+
+There is also a setup that deploys the entities - GUI, mixnet servers, unverified backend locally. Instead of deploying everything on Azure, we can also deploy all these entities locally.
+
+We follow the steps written in [Verificatum manual page 21](https://www.verificatum.org/files/vmnum-3.1.0.pdf)
+to conduct and election.
+
+### Setup
+1. Create folder `demoElection` at the root of the project.
+2. We have two http servers - auth server and unverified backend. We need to start
+  both of them with gunicorn. Run the following command in separate shells.
+  1. ```sh
+     gunicorn auth.frejaeid.app:app > /tmp/gunicorn.mylogs -b 127.0.0.1:8001
+     ```
+  2. ```sh
+     export AUTH_SERVER_URL=http://127.0.0.1:8001 # URL to auth server
+     gunicorn webdemo.app:app > /tmp/gunicorn.mylog
+     ```
+3. Since auth server needs client and server certificate to interact with FrejaEID,
+   make sure there are three files inside `auth/frejaeid/static`.
+   1. `freja.crt`: Server SSL certifcate of FrejaEID. Can be downloaded from [here](https://frejaeid.atlassian.net/wiki/spaces/DOC/pages/2162826/REST+API+Documentation).
+   2. `kth_client.crt` and `kth_client.key`: Client SSL certificate. Extracted from `kth.pfx`. Contact @monperrus/@algomaster99 to obtain if cannot be found.
+
+### Election process
+
+1. Start the local election by running:
+  ```sh
+  python3 scripts/local_demo.py --post http://127.0.0.1:8000
+  ```
+
+2. Go to `http://127.0.0.1:8000` to cast your vote.
+3. Press <kbd>Enter</kbd> to tally and output results to STDOUT. Example result: `Counter({'Yellow Candidate': 1})`
+4. Make sure to delete `demoElection` and its contents entirely before restarting the election.
+
+Each step to start the election as said in the manual is a bash command whose STDOUT and STDERR is logged
+inside `demoElection` itself. It can be used in case of debugging.
