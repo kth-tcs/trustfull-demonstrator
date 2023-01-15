@@ -710,7 +710,7 @@ def azure_create_webapp(args, service_plan_name, virtual_network_name):
             "--plan",
             service_plan_name,
             "--startup-file",
-            "gunicorn webdemo.app:app > /tmp/gunicorn.mylogs",
+            "export AUTH_SERVER_URL=https://aman-auth.azurewebsites.net/ && gunicorn webdemo.app:app > /tmp/gunicorn.mylogs",
             "--vnet",
             virtual_network_name,
             "--subnet",
