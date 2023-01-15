@@ -136,7 +136,7 @@ def root():
     logging.error(f"Hex-string: {beautified_hex_string}")
 
     sign_request = requests.post(
-        f'{get_auth_server_url}/init_sign',
+        f'{get_auth_server_url()}/init_sign',
         json={
             'email': user_email,
             'authRef': auth_ref,
