@@ -151,7 +151,7 @@ def root():
         signature_reference = response_object['signRef']
         SIGNED_VOTES.append((signature_reference, eval(vote)))
         
-        return render_template("poll.html", data=POLL_DATA, stats=STATS, show_success=True, vote=beautified_hex_string)
+        return render_template("poll.html", data=POLL_DATA, stats=STATS, show_success=True, hash=beautified_hex_string)
     
     if sign_request.status_code == 418:
         flash(sign_request.json()['message'])
