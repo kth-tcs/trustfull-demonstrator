@@ -19,7 +19,7 @@ from .bytetree import ByteTree
 
 mimetypes.add_type("application/wasm", ".wasm")
 
-SIGN_REF = Queue(maxsize=5)
+SIGNED_VOTES = []
 
 def get_auth_server_url():
     parsed_url = urlparse(os.getenv('AUTH_SERVER_URL'))
@@ -74,9 +74,12 @@ def login_required(f):
     return decorated_function
 
 
-def _activate_sign_ref_queue():
-    while not SIGN_REF.empty():
-        signature_reference, encrypted_vote = SIGN_REF.get()
+def _check_for_signed_votes():
+    it = len(SIGNED_VOTES) - 1
+    votes_for_verified_backend = []
+    while (it >= 0):
+        signed_vote = SIGNED_VOTES[it]
+        signature_reference, encrypted_vote = signed_vote
         signature, has_signed = _confirm_if_user_has_signed(signature_reference)
         if signature is not None and has_signed:
             modified_response_object = {
@@ -86,15 +89,17 @@ def _activate_sign_ref_queue():
             with open(FILENAME, "a") as f:
                 print(encrypted_vote, file=f)
                 STATS["nvotes"] += 1
-            return render_template("poll.html", data=POLL_DATA, stats=STATS, show_success=True, vote=json.dumps(modified_response_object))
-    return render_template("poll.html", data=POLL_DATA, stats=STATS, vote=None)   
+            del SIGNED_VOTES[it]
+            print(modified_response_object)
+            votes_for_verified_backend.append(modified_response_object)
+        it -= 1
+    if len(votes_for_verified_backend) == 0:
+        return render_template("poll.html", data=POLL_DATA, stats=STATS, vote=None)
+    
+    return render_template("poll.html", data=POLL_DATA, stats=STATS, show_success=True, vote=json.dumps(votes_for_verified_backend))
 
 
-
-def _confirm_if_user_has_signed(sign_ref, retry_count=12):
-  if retry_count == 0:
-    return (None, False)
-  try:
+def _confirm_if_user_has_signed(sign_ref):
     r = requests.post(
         f'{get_auth_server_url()}/confirm_sign',
         json={
@@ -104,12 +109,8 @@ def _confirm_if_user_has_signed(sign_ref, retry_count=12):
 
     if r.status_code == 200:
         return (r.json()['signature'], True)
-    else:
-        raise Exception
-  except Exception:
-    time.sleep(10)
-    retry_count -= 1
-    return _confirm_if_user_has_signed(sign_ref, retry_count)
+    
+    return (None, None)
 
 @app.route("/", methods=("GET", "POST"))
 @login_required
@@ -118,7 +119,7 @@ def root():
         return "Missing public key!"
 
     if request.method == "GET":
-        return _activate_sign_ref_queue()
+        return _check_for_signed_votes()
 
     auth_ref = request.cookies.get('user')
 
@@ -148,7 +149,7 @@ def root():
     if sign_request.status_code == 200:
         response_object = sign_request.json()
         signature_reference = response_object['signRef']
-        SIGN_REF.put((signature_reference, eval(vote)))
+        SIGNED_VOTES.append((signature_reference, eval(vote)))
         
         return render_template("poll.html", data=POLL_DATA, stats=STATS, show_success=True, vote=beautified_hex_string)
     
