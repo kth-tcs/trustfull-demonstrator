@@ -264,7 +264,8 @@ to conduct and election.
   ```
 
 2. Go to `http://127.0.0.1:8000` to cast your vote.
-3. Press <kbd>Enter</kbd> to tally and output results to STDOUT. Example result: `Counter({'Yellow Candidate': 1})`
+3. Press <kbd>Enter</kbd> to tally. The results will be accessible at `http://127.0.0.1:8000/results`.
+   Use `Results` button on GUI to go there.
 4. Make sure to delete `demoElection` and its contents entirely before restarting the election.
 
 Each step to start the election as said in the manual is a bash command whose STDOUT and STDERR is logged
