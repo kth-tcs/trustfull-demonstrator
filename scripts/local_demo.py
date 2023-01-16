@@ -21,7 +21,7 @@ def main(args):
     if args.vmn:
         vmn(args)
     if args.vbt and not args.dry_run:
-        print(vbt())
+        print(vbt(args))
 
     return 0
 
@@ -178,11 +178,12 @@ def import_bytetree():
         print(f"Could not load bytetree.py that should have been located in {path}")
         raise e
 
-def vbt():
+def vbt(args):
     """
     Output & tallying
     """
-    return Counter(
+
+    vbt_json = Counter(
         map(
             lambda x: "".join(
                 # Plaintexts is a byte tree with N children where each child is
@@ -196,6 +197,11 @@ def vbt():
             import_bytetree()(os.path.join(DEMO_ELECTION, "1", "plaintexts")),
         )
     )
+
+    # Post results to GUI
+    request("POST", f"{args.post}/results", json=vbt_json)
+
+    return vbt_json
 
 
 def call(cmd, popen=False, **kwargs):
