@@ -211,31 +211,31 @@ def initiate_signing():
   b64encode_bytes_vote = base64.b64encode(hash_bytes)
   b64encode_bytes_string = b64encode_bytes_vote.decode('utf-8')
 
-  can_vote = _register_vote(auth_ref)
-  if can_vote.status_code == 200:
-    r = requests.post(
-      urls.initiate_signing(),
-      data=FrejaEID.get_body_for_init_sign(user_email, b64encode_bytes_string),
-      cert=_get_client_ssl_certificate(),
-      verify=_get_server_certificate()
-    )
+  r = requests.post(
+    urls.initiate_signing(),
+    data=FrejaEID.get_body_for_init_sign(user_email, b64encode_bytes_string),
+    cert=_get_client_ssl_certificate(),
+    verify=_get_server_certificate()
+  )
 
-    if r.status_code == 200:
-      freja_sign_ref = r.json()['signRef']
-      return Response(json.dumps({
-        'message': 'Here is the signature reference',
-        'signRef': freja_sign_ref
-      }))
+  if r.status_code == 200:
+    freja_sign_ref = r.json()['signRef']
+    return Response(json.dumps({
+      'message': 'Here is the signature reference',
+      'signRef': freja_sign_ref
+    }))
     
-    ## Adding this for the sake of defensive programming and debugging in future.
-    return Response(json.dumps({'message': f'Could not process {r.json()}'}), status=500)
+  ## Adding this for the sake of defensive programming and debugging in future.
+  return Response(json.dumps({'message': f'Could not process {r.json()}'}), status=500)
   
-  return can_vote
 
 @app.route('/confirm_sign', methods=['POST'])
 def confirm_if_user_has_signed():
-  # Todo: add malformed request verifier
   sign_ref = request.get_json().get('signRef')
+
+  if sign_ref is None:
+    return Response(json.dumps({'message': '\'signRef\' atttribute missing in payload'}), status=400)
+
   r = requests.post(
     urls.confirm_signing(),
     data=FrejaEID.get_body_for_confirming_signature(sign_ref),
