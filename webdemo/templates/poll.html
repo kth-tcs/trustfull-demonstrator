@@ -56,21 +56,12 @@
             </form>
         </div>
         {% if hash %}
-        <div class="modal:visible" tabindex="-1">
-            <div class="modal-dialog">
-              <div class="modal-content">
-                <div class="modal-header">
-                  <h5 class="modal-title">Verify hash values</h5>
-                </div>
-                <div class="modal-body">
-                  <p>{{ hash }}</p>
-                </div>
-                <div class="modal-footer">
-                  <button type="button" class="btn btn-primary" onclick="closeModal()" data-bs-dismiss="modal">Hash value matches!</button>
-                </div>
-              </div>
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title font-weight-bold">Verify hash values</h5>
+                <p class="card-text">{{ hash }}</p>
             </div>
-        </div> 
+        </div>
         {% endif %}
         {% if vote %}
             <div>
@@ -112,10 +103,6 @@
 </script>
 <script src="{{url_for('static', filename='min-vjsc-1.1.1.js')}}"></script>
 <script>
-    function closeModal() {
-        document.getElementsByClassName('modal:visible')[0].className = 'modal';
-    }
-
     // Hide success alert window
     setTimeout(function() {
         window.success.className += ' hidden';
