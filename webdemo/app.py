@@ -291,7 +291,7 @@ def ciphertexts():
         return send_file(
             io.BytesIO(byte_tree.to_byte_array()),
             mimetype="application/octet-stream",
-            attachment_filename="ciphertexts",
+            download_name="ciphertexts",
             as_attachment=True,
         )
 
