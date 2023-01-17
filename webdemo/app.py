@@ -3,13 +3,11 @@ import json
 import logging
 import mimetypes
 import os
-import time
 import requests
 from functools import wraps
 from hashlib import sha256
 from itertools import islice
 from operator import itemgetter
-from queue import Queue
 from urllib.parse import urlparse
 
 from flask import Flask, render_template, request, send_file, redirect, flash, url_for, make_response
@@ -113,15 +111,12 @@ def _confirm_if_user_has_signed(sign_ref):
     return (None, None)
 
 @app.route("/", methods=("GET", "POST"))
-@login_required
 def root():
     if POLL_DATA["publicKey"] is None:
         return "Missing public key!"
 
     if request.method == "GET":
         return _check_for_signed_votes()
-
-    auth_ref = request.cookies.get('user')
 
     vote = request.form.get("field")
     user_email = request.form.get('email-for-signing')
@@ -140,7 +135,6 @@ def root():
         f'{get_auth_server_url()}/init_sign',
         json={
             'email': user_email,
-            'authRef': auth_ref,
             'text': '',
             'vote': beautified_hex_string,
         }
