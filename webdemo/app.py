@@ -17,6 +17,8 @@ from .bytetree import ByteTree
 
 mimetypes.add_type("application/wasm", ".wasm")
 
+# Items are tuple
+# (signature reference/signature, vote, is freja online)
 SIGNED_VOTES = []
 
 def get_auth_server_url():
@@ -77,24 +79,39 @@ def _check_for_signed_votes():
     votes_for_verified_backend = []
     while (it >= 0):
         signed_vote = SIGNED_VOTES[it]
-        signature_reference, encrypted_vote = signed_vote
-        signature, has_signed = _confirm_if_user_has_signed(signature_reference)
-        if signature is not None and has_signed:
+        signature_reference, encrypted_vote, freja_online = signed_vote
+        if freja_online:
+            signature, has_signed = _confirm_if_user_has_signed(signature_reference)
+            if signature is not None and has_signed:
+                modified_response_object = {
+                    'vote': encrypted_vote,
+                    'signature': signature,
+                }
+                _append_vote_to_ciphertexts(encrypted_vote)
+                del SIGNED_VOTES[it]
+                print(modified_response_object)
+                votes_for_verified_backend.append(modified_response_object)
+        else:
             modified_response_object = {
                 'vote': encrypted_vote,
-                'signature': signature,
+                'signature': signature_reference,
             }
-            with open(FILENAME, "a") as f:
-                print(encrypted_vote, file=f)
-                STATS["nvotes"] += 1
+            _append_vote_to_ciphertexts(encrypted_vote)
             del SIGNED_VOTES[it]
             print(modified_response_object)
             votes_for_verified_backend.append(modified_response_object)
+
         it -= 1
     if len(votes_for_verified_backend) == 0:
         return render_template("poll.html", data=POLL_DATA, stats=STATS, vote=None)
     
     return render_template("poll.html", data=POLL_DATA, stats=STATS, show_success=True, vote=json.dumps(votes_for_verified_backend))
+
+
+def _append_vote_to_ciphertexts(vote):
+    with open(FILENAME, "a") as f:
+        print(vote, file=f)
+        STATS["nvotes"] += 1
 
 
 def _confirm_if_user_has_signed(sign_ref):
@@ -143,7 +160,7 @@ def root():
     if sign_request.status_code == 200:
         response_object = sign_request.json()
         signature_reference = response_object['signRef']
-        SIGNED_VOTES.append((signature_reference, eval(vote)))
+        SIGNED_VOTES.append((signature_reference, eval(vote), True))
         
         return render_template("poll.html", data=POLL_DATA, stats=STATS, show_success=True, hash=beautified_hex_string)
     
@@ -227,6 +244,22 @@ def _is_authenticated(user_identification):
         return True
     
     return False
+
+@app.route("/offline_vote")
+def offline_vote():
+    """
+    Endpoint for casting a vote when FrejaEID is offline.
+    """
+
+    with open(os.path.join(app.static_folder, 'sample-signed-vote.json')) as f:
+        sample_signed_vote = json.loads(f.read())
+
+    encrypted_vote = sample_signed_vote['vote']
+    signature = sample_signed_vote['signature']
+    
+    SIGNED_VOTES.append((signature, encrypted_vote, False))
+    
+    return redirect(url_for('root'))
 
 
 @csrf.exempt
