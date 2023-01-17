@@ -1,3 +1,4 @@
+import base64
 import io
 import json
 import logging
@@ -44,6 +45,7 @@ POLL_DATA = {
 }
 STATS = {}
 RESULTS = "results.json"
+SIGNATURES = "signatures.txt"
 
 
 def init_stats():
@@ -82,21 +84,33 @@ def _check_for_signed_votes():
         signature_reference, encrypted_vote, freja_online = signed_vote
         if freja_online:
             signature, has_signed = _confirm_if_user_has_signed(signature_reference)
+            if _has_user_already_voted(signature):
+                del SIGNED_VOTES[it]
+                return render_template("poll.html", data=POLL_DATA, stats=STATS, vote=None)
+
             if signature is not None and has_signed:
                 modified_response_object = {
                     'vote': encrypted_vote,
                     'signature': signature,
                 }
                 _append_vote_to_ciphertexts(encrypted_vote)
+                _record_signature(signature)
                 del SIGNED_VOTES[it]
                 print(modified_response_object)
                 votes_for_verified_backend.append(modified_response_object)
         else:
+            # `signature_reference` is signature in case of offline votes
+            if _has_user_already_voted(signature_reference):
+                flash('You have already voted')
+                del SIGNED_VOTES[it]
+                return render_template("poll.html", data=POLL_DATA, stats=STATS, vote=None)
+
             modified_response_object = {
                 'vote': encrypted_vote,
                 'signature': signature_reference,
             }
             _append_vote_to_ciphertexts(encrypted_vote)
+            _record_signature(signature_reference)
             del SIGNED_VOTES[it]
             print(modified_response_object)
             votes_for_verified_backend.append(modified_response_object)
@@ -113,6 +127,31 @@ def _append_vote_to_ciphertexts(vote):
         print(vote, file=f)
         STATS["nvotes"] += 1
 
+
+def _record_signature(signature):
+    with open(SIGNATURES, "a") as f:
+        f.write(signature)
+
+
+def _has_user_already_voted(candidate_signature):
+    if not os.path.exists(SIGNATURES):
+        return False
+    
+    with open(SIGNATURES) as f:
+        current_signatures = f.readlines()
+    
+    for current_signature in current_signatures:
+        if _get_userInfo_from_signature(current_signature) \
+            == _get_userInfo_from_signature(candidate_signature):
+            return True
+    return False 
+
+
+def _get_userInfo_from_signature(signature):
+    jws_payload = signature.split('.')[1]
+    jws_payload_decoded = base64.urlsafe_b64decode(jws_payload + '=' * (4 - len(jws_payload) % 4))
+    payload_json = json.loads(jws_payload_decoded)
+    return payload_json["userInfo"]
 
 def _confirm_if_user_has_signed(sign_ref):
     r = requests.post(
@@ -202,6 +241,9 @@ def _reset():
     
     if _delete_file(RESULTS):
         response_text += "Successfully deleted {RESULTS}:<br/><pre>{stat}</pre>\n"
+
+    if _delete_file(SIGNATURES):
+        response_text += "Successfully deleted {SIGNATURES}:<br/><pre>{stat}</pre>\n"
 
     if response_text:
         return response_text
