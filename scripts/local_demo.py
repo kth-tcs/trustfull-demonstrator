@@ -7,9 +7,8 @@ import string
 from collections import Counter
 from itertools import chain
 from pathlib import Path
-from subprocess import Popen, PIPE
+from subprocess import Popen
 from subprocess import call as subprocess_call
-from subprocess import check_output
 
 DEMO_ELECTION = Path(os.path.dirname(__file__)).parent.joinpath('demoElection')
 
