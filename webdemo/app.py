@@ -130,10 +130,13 @@ def _append_vote_to_ciphertexts(vote):
 
 def _record_signature(signature):
     with open(SIGNATURES, "a") as f:
-        f.write(signature)
+        f.write(f"{signature}\n")
 
 
 def _has_user_already_voted(candidate_signature):
+    if candidate_signature is None:
+        return False
+
     if not os.path.exists(SIGNATURES):
         return False
     
