@@ -64,9 +64,9 @@
         </div>
         {% endif %}
         {% if vote %}
-            <div>
-                {{ vote }}
-            </div>
+          <details><summary>Raw signature and encrypted vote</summary>
+            <textarea readonly>{{ vote }}</textarea>
+          </details>
         {% endif %}
         <div class="card-footer text-primary">
             {{ stats.nvotes }} vote{{ '' if stats.nvotes == 1 else 's' }} so far
