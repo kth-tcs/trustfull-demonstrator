@@ -178,12 +178,15 @@ def root():
         return _check_for_signed_votes()
 
     vote = request.form.get("field")
+    vote_dict = json.loads(vote)
+    first = vote_dict[0]
+    second = vote_dict[1]
     user_email = request.form.get('email-for-signing')
     error = _validate_vote(vote)
     if error:
         return error    
 
-    encrypted_vote = str(vote).encode('utf-8')
+    encrypted_vote = ByteTree([ByteTree(first), ByteTree(second)]).to_byte_array()
     hashed_encryption = sha256()
     hashed_encryption.update(encrypted_vote)
     hex_string = hashed_encryption.digest().hex()
