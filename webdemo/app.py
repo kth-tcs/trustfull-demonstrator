@@ -220,8 +220,14 @@ def root():
 def _validate_vote(vote):
     try:
         x = json.loads(vote)
+        first = x[0]
+        second = x[1]
+        ByteTree.from_byte_array(first)
+        ByteTree.from_byte_array(second)
     except json.JSONDecodeError:
         return "JSON Decode Error"
+    except AssertionError:
+        return "Vote could not be parsed into a valid ByteTree"
 
     len_x = len(x)
     if len_x != 2:
