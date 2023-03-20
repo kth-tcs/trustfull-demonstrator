@@ -18,6 +18,10 @@ from .bytetree import ByteTree
 
 mimetypes.add_type("application/wasm", ".wasm")
 
+logging.basicConfig(level=logging.INFO, filemode="a", filename="local_demo.log", format="%(asctime)s;%(levelname)s;%(name)s;%(message)s")
+
+logger = logging.getLogger('unverified_backend')
+
 # Items are tuple
 # (signature reference/signature, vote, is freja online)
 SIGNED_VOTES = []
@@ -81,7 +85,7 @@ def _check_for_signed_votes():
     votes_for_verified_backend = []
     while (it >= 0):
         signed_vote = SIGNED_VOTES[it]
-        signature_reference, encrypted_vote, freja_online = signed_vote
+        signature_reference, encrypted_vote, freja_online, user_email = signed_vote
         if freja_online:
             signature, has_signed = _confirm_if_user_has_signed(signature_reference)
             if _has_user_already_voted(signature):
@@ -97,6 +101,7 @@ def _check_for_signed_votes():
                 _record_signature(signature)
                 del SIGNED_VOTES[it]
                 print(modified_response_object)
+                logger.info(f'Vote signing successful: {user_email},{signature_reference}')
                 votes_for_verified_backend.append(modified_response_object)
         else:
             # `signature_reference` is signature in case of offline votes
@@ -173,6 +178,10 @@ def _confirm_if_user_has_signed(sign_ref):
 def root():
     if POLL_DATA["publicKey"] is None:
         return "Missing public key!"
+    
+    session_id = request.cookies.get('session')
+
+    logger.info(f'Client: {session_id}')
 
     if request.method == "GET":
         return _check_for_signed_votes()
@@ -191,7 +200,8 @@ def root():
     hashed_encryption.update(encrypted_vote)
     hex_string = hashed_encryption.digest().hex()
     beautified_hex_string = ' '.join([hex_string[i:i+4] for i in range(0, len(hex_string), 4)])
-    logging.error(f"Hex-string: {beautified_hex_string}")
+
+    logger.info(f'Vote casting: {beautified_hex_string},{user_email},{session_id}')
 
     sign_request = requests.post(
         f'{get_auth_server_url()}/init_sign',
@@ -202,10 +212,12 @@ def root():
         }
     )
 
+    logger.info(f'Vote signing request: {beautified_hex_string}')
+
     if sign_request.status_code == 200:
         response_object = sign_request.json()
         signature_reference = response_object['signRef']
-        SIGNED_VOTES.append((signature_reference, eval(vote), True))
+        SIGNED_VOTES.append((signature_reference, eval(vote), True, user_email))
         
         return render_template("poll.html", data=POLL_DATA, stats=STATS, show_success=True, hash=beautified_hex_string)
     
@@ -310,11 +322,19 @@ def offline_vote():
 
     encrypted_vote = sample_signed_vote['vote']
     signature = sample_signed_vote['signature']
+    user_email = _get_email_from_jws_payload(signature)
     
-    SIGNED_VOTES.append((signature, encrypted_vote, False))
+    SIGNED_VOTES.append((signature, encrypted_vote, False, user_email))
     
     return redirect(url_for('root'))
 
+
+def _get_email_from_jws_payload(jws_payload):
+  _, payload, _ = jws_payload.split('.')
+  # Needed to prevent incorrect padding error
+  payload += '=='
+  payload_decoded = json.loads(base64.b64decode(payload).decode('utf-8'))
+  return payload_decoded['userInfo']
 
 @csrf.exempt
 @app.route("/publicKey", methods=("GET", "POST"))

@@ -1,5 +1,6 @@
 import base64
 import json
+import logging
 import requests
 from flask import Flask, request, Response
 
@@ -7,6 +8,10 @@ from auth.frejaeid import urls
 from auth.frejaeid.payload import FrejaEID
 from auth.frejaeid.models import db, User
 
+
+logging.basicConfig(level=logging.INFO, filemode="a", filename="local_demo.log", format="%(asctime)s;%(levelname)s;%(name)s;%(message)s")
+
+logger = logging.getLogger('auth_server')
 
 app = Flask(__name__, static_url_path='/static')
 
@@ -218,6 +223,8 @@ def initiate_signing():
     verify=_get_server_certificate()
   )
 
+  logger.info(f'Sign request forwarded: {user_email},{b64encode_bytes_string}')
+
   if r.status_code == 200:
     freja_sign_ref = r.json()['signRef']
     return Response(json.dumps({
@@ -246,6 +253,8 @@ def confirm_if_user_has_signed():
   if r.status_code == 200:
     status = r.json()['status']
     if status == 'APPROVED':
+      user_email = _get_email_from_jws_payload(r.json()['details'])
+      logger.info(f'Successful vote signing: {user_email},{sign_ref}')
       return Response(json.dumps({
         'message': 'Signing successful',
         'signature': r.json()['details']
@@ -256,6 +265,14 @@ def confirm_if_user_has_signed():
       }), status=400)
   
   return Response(json.dumps({'message': 'Connection with Freja failed'}), status=500)
+
+
+def _get_email_from_jws_payload(jws_payload):
+  _, payload, _ = jws_payload.split('.')
+  # Needed to prevent incorrect padding error
+  payload += '=='
+  payload_decoded = json.loads(base64.b64decode(payload).decode('utf-8'))
+  return payload_decoded['userInfo']
 
 # FrejaEid uses it to identify who is making API requests
 def _get_client_ssl_certificate():

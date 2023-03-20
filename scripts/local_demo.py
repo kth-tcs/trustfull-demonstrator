@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import logging
 import os
 import string
 from collections import Counter
@@ -9,6 +10,10 @@ from itertools import chain
 from pathlib import Path
 from subprocess import Popen
 from subprocess import call as subprocess_call
+
+logging.basicConfig(level=logging.INFO, filemode="w", filename="local_demo.log", format="%(asctime)s;%(levelname)s;%(name)s;%(message)s")
+
+logger = logging.getLogger('admin')
 
 DEMO_ELECTION = Path(os.path.dirname(__file__)).parent.joinpath('demoElection')
 
@@ -42,6 +47,7 @@ def vmni_common_parameters(args):
     for idx,_ in enumerate(args.ips):
         if not args.dry_run:
             os.makedirs(os.path.join(DEMO_ELECTION, str(idx)), exist_ok=True)
+        logger.info('Generating stub.xml for party %s', idx)
         args.call(
             [
                 "vmni",
@@ -111,6 +117,8 @@ def vmn(args):
         )
         for idx in range(args.num_parties)
     ]
+
+    logger.info('Public key computed')
 
     for p in processes:
         p.communicate()
