@@ -11,7 +11,7 @@ from auth.frejaeid.models import db, User
 
 logging.basicConfig(level=logging.INFO, filemode="a", filename="local_demo.log", format="%(asctime)s;%(levelname)s;%(name)s;%(message)s")
 
-logger = logging.getLogger('auth_server')
+logger = logging.getLogger('id_service')
 
 app = Flask(__name__, static_url_path='/static')
 
@@ -223,7 +223,7 @@ def initiate_signing():
     verify=_get_server_certificate()
   )
 
-  logger.info(f'Sign request forwarded: {user_email},{b64encode_bytes_string}')
+  logger.info(f'11 -> (receive) forwarded request by web_server {user_email},{b64encode_bytes_string}')
 
   if r.status_code == 200:
     freja_sign_ref = r.json()['signRef']
@@ -238,6 +238,7 @@ def initiate_signing():
 
 @app.route('/confirm_sign', methods=['POST'])
 def confirm_if_user_has_signed():
+  logger.info(f'13 -> (receiver) has user signed yet?')
   sign_ref = request.get_json().get('signRef')
 
   if sign_ref is None:
@@ -254,7 +255,7 @@ def confirm_if_user_has_signed():
     status = r.json()['status']
     if status == 'APPROVED':
       user_email = _get_email_from_jws_payload(r.json()['details'])
-      logger.info(f'Successful vote signing: {user_email},{sign_ref}')
+      logger.info(f'14 -> (send) successful vote signing: {user_email},{sign_ref}')
       return Response(json.dumps({
         'message': 'Signing successful',
         'signature': r.json()['details']

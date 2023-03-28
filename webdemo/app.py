@@ -20,7 +20,7 @@ mimetypes.add_type("application/wasm", ".wasm")
 
 logging.basicConfig(level=logging.INFO, filemode="a", filename="local_demo.log", format="%(asctime)s;%(levelname)s;%(name)s;%(message)s")
 
-logger = logging.getLogger('unverified_backend')
+logger = logging.getLogger('vote_collection_server/web_server')
 
 # Items are tuple
 # (signature reference/signature, vote, is freja online)
@@ -101,7 +101,7 @@ def _check_for_signed_votes():
                 _record_signature(signature)
                 del SIGNED_VOTES[it]
                 print(modified_response_object)
-                logger.info(f'Vote signing successful: {user_email},{signature_reference}')
+                logger.info(f'14 -> (recieve) successful vote signing: {user_email},{signature_reference}')
                 votes_for_verified_backend.append(modified_response_object)
         else:
             # `signature_reference` is signature in case of offline votes
@@ -124,6 +124,7 @@ def _check_for_signed_votes():
     if len(votes_for_verified_backend) == 0:
         return render_template("poll.html", data=POLL_DATA, stats=STATS, vote=None)
     
+    logger.info(f'15 -> (send) forward signature')
     return render_template("poll.html", data=POLL_DATA, stats=STATS, show_success=True, vote=json.dumps(votes_for_verified_backend))
 
 
@@ -162,6 +163,7 @@ def _get_userInfo_from_signature(signature):
     return payload_json["userInfo"]
 
 def _confirm_if_user_has_signed(sign_ref):
+    logger.info(f'13 -> (send) ask id_server if user signed')
     r = requests.post(
         f'{get_auth_server_url()}/confirm_sign',
         json={
@@ -176,14 +178,13 @@ def _confirm_if_user_has_signed(sign_ref):
 
 @app.route("/", methods=("GET", "POST"))
 def root():
+    session_id = request.cookies.get('session')
     if POLL_DATA["publicKey"] is None:
         return "Missing public key!"
     
-    session_id = request.cookies.get('session')
-
-    logger.info(f'Client: {session_id}')
-
     if request.method == "GET":
+        logger.info(f'6 -> (receive) receive request from client {session_id}') 
+        logger.info('6 -> (send) send the UI to client')
         return _check_for_signed_votes()
 
     vote = request.form.get("field")
@@ -201,7 +202,8 @@ def root():
     hex_string = hashed_encryption.digest().hex()
     beautified_hex_string = ' '.join([hex_string[i:i+4] for i in range(0, len(hex_string), 4)])
 
-    logger.info(f'Vote casting: {beautified_hex_string},{user_email},{session_id}')
+    # add a step information in log
+    logger.info(f'10 -> (receive) Request signing of vote: {beautified_hex_string},{user_email},{session_id}')
 
     sign_request = requests.post(
         f'{get_auth_server_url()}/init_sign',
@@ -212,7 +214,7 @@ def root():
         }
     )
 
-    logger.info(f'Vote signing request: {beautified_hex_string}')
+    logger.info(f'11 -> (send) Vote signing request forwarded   : {beautified_hex_string}')
 
     if sign_request.status_code == 200:
         response_object = sign_request.json()
@@ -365,6 +367,7 @@ def publickey():
         return "publicKey missing", 400
 
     new_pk.save(PUBLIC_KEY)
+    logger.info("3 -> (receive) Received public key from admin")
     init_pk()
     _reset()
 

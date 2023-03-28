@@ -747,6 +747,23 @@ def azure_create_auth(args, service_plan_name, virtual_network_name):
         args.container,
     )
 
+    # azure_call([
+    #     "az",
+    #     "webapp",
+    #     "deploy",
+    #     "-g",
+    #     args.group,
+    #     "--name",
+    #     name,
+    #     "--type",
+    #     "zip",
+    #     "--async",
+    #     "true",
+    #     "--src-path",
+    #     "/trustfull-demonstrator.zip",
+    # ], args.container)
+
+
     azure_call([
         "az",
         "webapp",

@@ -47,7 +47,6 @@ def vmni_common_parameters(args):
     for idx,_ in enumerate(args.ips):
         if not args.dry_run:
             os.makedirs(os.path.join(DEMO_ELECTION, str(idx)), exist_ok=True)
-        logger.info('Generating stub.xml for party %s', idx)
         args.call(
             [
                 "vmni",
@@ -110,6 +109,7 @@ def vmn(args):
     3.Mix-Net
     """
     processes = [
+        # add logging script to vmn
         args.call(
             ["vmn", "-keygen", "privInfo.xml", "../merged.xml", "publicKey"],
             popen=True,
@@ -118,7 +118,7 @@ def vmn(args):
         for idx in range(args.num_parties)
     ]
 
-    logger.info('Public key computed')
+    logger.info('3 -> (receive) Public key received by mix-net')
 
     for p in processes:
         p.communicate()
@@ -130,6 +130,7 @@ def vmn(args):
     elif args.post:
         with open(os.path.join(DEMO_ELECTION, "0/publicKey"), "rb") as f:
             request("POST", f"{args.post}/publicKey", files={"publicKey": f})
+            logger.info('3 -> (send) Public key sent')
         input("Vote and press Enter ")
         with open(os.path.join(DEMO_ELECTION, "ciphertexts"), "wb") as f:
             r = request("GET", f"{args.post}/ciphertexts")
