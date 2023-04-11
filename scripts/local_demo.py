@@ -118,7 +118,7 @@ def vmn(args):
         for idx in range(args.num_parties)
     ]
 
-    logger.info('3 -> (receive) Public key received by mix-net')
+    logger.info(f'3 -> (receive) Public key received by mix-net')
 
     for p in processes:
         p.communicate()
@@ -132,6 +132,7 @@ def vmn(args):
             request("POST", f"{args.post}/publicKey", files={"publicKey": f})
             logger.info('3 -> (send) Public key sent')
         input("Vote and press Enter ")
+        logger.info('25 -> (send) End of voting')
         with open(os.path.join(DEMO_ELECTION, "ciphertexts"), "wb") as f:
             r = request("GET", f"{args.post}/ciphertexts")
             f.write(r.content)
@@ -139,6 +140,7 @@ def vmn(args):
         while not os.path.exists("ciphertexts"):
             input("Please collect ciphertexts and press Enter ")
 
+    logger.info(f'27 -> (send) Start shuffle for party')
     processes = [
         args.call(
             [
@@ -154,6 +156,7 @@ def vmn(args):
         )
         for idx in range(args.num_parties)
     ]
+    logger.info(f'27 -> (receive) End shuffle for party')
     for p in processes:
         p.communicate()
 

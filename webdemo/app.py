@@ -20,7 +20,7 @@ mimetypes.add_type("application/wasm", ".wasm")
 
 logging.basicConfig(level=logging.INFO, filemode="a", filename="local_demo.log", format="%(asctime)s;%(levelname)s;%(name)s;%(message)s")
 
-logger = logging.getLogger('vote_collection_server/web_server')
+logger = logging.getLogger('vote_collection_server|web_server')
 
 # Items are tuple
 # (signature reference/signature, vote, is freja online)
@@ -88,58 +88,66 @@ def _check_for_signed_votes():
         signature_reference, encrypted_vote, freja_online, user_email = signed_vote
         if freja_online:
             signature, has_signed = _confirm_if_user_has_signed(signature_reference)
-            if _has_user_already_voted(signature):
-                del SIGNED_VOTES[it]
-                return render_template("poll.html", data=POLL_DATA, stats=STATS, vote=None)
+            logger.info(f'14 -> (recieve) successful vote signing: {user_email},{signature_reference}')
 
             if signature is not None and has_signed:
                 modified_response_object = {
                     'vote': encrypted_vote,
                     'signature': signature,
                 }
-                _append_vote_to_ciphertexts(encrypted_vote)
-                _record_signature(signature)
-                del SIGNED_VOTES[it]
-                print(modified_response_object)
-                logger.info(f'14 -> (recieve) successful vote signing: {user_email},{signature_reference}')
                 votes_for_verified_backend.append(modified_response_object)
+                logger.info(f'15 -> (send) forward signature')
+                if _mock_user_forward():
+                    logger.info(f'17 -> (receive) receive submission request {encrypted_vote})')
+                    _record_signature(signature, encrypted_vote)
+                del SIGNED_VOTES[it]
         else:
             # `signature_reference` is signature in case of offline votes
-            if _has_user_already_voted(signature_reference):
-                flash('You have already voted')
-                del SIGNED_VOTES[it]
-                return render_template("poll.html", data=POLL_DATA, stats=STATS, vote=None)
-
             modified_response_object = {
                 'vote': encrypted_vote,
                 'signature': signature_reference,
             }
-            _append_vote_to_ciphertexts(encrypted_vote)
-            _record_signature(signature_reference)
-            del SIGNED_VOTES[it]
-            print(modified_response_object)
             votes_for_verified_backend.append(modified_response_object)
+            logger.info(f'15 -> (send) forward signature')
+            if _mock_user_forward():
+                logger.info(f'17 -> (receive) receive submission request {encrypted_vote})')
+                _record_signature(signature_reference, encrypted_vote)
+            del SIGNED_VOTES[it]
 
         it -= 1
     if len(votes_for_verified_backend) == 0:
         return render_template("poll.html", data=POLL_DATA, stats=STATS, vote=None)
     
-    logger.info(f'15 -> (send) forward signature')
+    # logger.info(f'15 -> (send) forward signature') is actually happeneing here
     return render_template("poll.html", data=POLL_DATA, stats=STATS, show_success=True, vote=json.dumps(votes_for_verified_backend))
+
+
+def _mock_user_forward():
+    return True
 
 
 def _append_vote_to_ciphertexts(vote):
     with open(FILENAME, "a") as f:
         print(vote, file=f)
         STATS["nvotes"] += 1
+        
 
 
-def _record_signature(signature):
-    with open(SIGNATURES, "a") as f:
-        f.write(f"{signature}\n")
+def _record_signature(signature, vote):
+    logger.info(f'18 -> (send) check if user has already voted {signature}')
+    if not _has_user_already_voted(signature):
+        logger.info(f'18 -> (recieve) user has not voted')
+        with open(SIGNATURES, "a") as f:
+            f.write(f"{signature}\n")
+        _append_vote_to_ciphertexts(vote)
+    else:
+        logger.info(f'18 -> (recieve) user has already voted')
+    
 
 
 def _has_user_already_voted(candidate_signature):
+    # TODO: move this so that it happens at step 18
+    # if 18 fails show that error failed
     if candidate_signature is None:
         return False
 
@@ -366,8 +374,9 @@ def publickey():
     if new_pk is None:
         return "publicKey missing", 400
 
+    # Time not logged for this statmenet
+    logger.info(f'3 -> (receive) Received public key from admin')
     new_pk.save(PUBLIC_KEY)
-    logger.info("3 -> (receive) Received public key from admin")
     init_pk()
     _reset()
 
