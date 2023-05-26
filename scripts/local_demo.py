@@ -194,6 +194,7 @@ def vbt(args):
     Output & tallying
     """
 
+    logging.info('28 -> (send) Signal from mix-net to decrypt votes')
     vbt_json = Counter(
         map(
             lambda x: "".join(
@@ -208,6 +209,7 @@ def vbt(args):
             import_bytetree()(os.path.join(DEMO_ELECTION, "1", "plaintexts")),
         )
     )
+    logging.info(f'28 -> (receive) Decrypted votes {vbt_json}')
 
     # Post results to GUI
     request("POST", f"{args.post}/results", json=vbt_json)
