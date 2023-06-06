@@ -156,9 +156,11 @@
 
         // XXX: why?
         // In format expected by VMN
-        const encrypted0 = encrypted.values[0].toByteTree().toByteArray();
-        const encrypted1 = encrypted.values[1].toByteTree().toByteArray();
-        return JSON.stringify([encrypted0, encrypted1]);
+        const encrypted0 = encrypted.values[0].toByteTree();
+        const encrypted1 = encrypted.values[1].toByteTree();
+        // merge bytetree
+        const root_bytetree = new verificatum.eio.ByteTree([encrypted0, encrypted1]);
+        return JSON.stringify(root_bytetree.toByteArray());
     }
 </script>
 {% endblock %}
