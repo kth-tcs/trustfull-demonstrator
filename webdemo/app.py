@@ -196,15 +196,12 @@ def root():
         return _check_for_signed_votes()
 
     vote = request.form.get("field")
-    vote_dict = json.loads(vote)
-    first = vote_dict[0]
-    second = vote_dict[1]
     user_email = request.form.get('email-for-signing')
     error = _validate_vote(vote)
     if error:
         return error    
 
-    encrypted_vote = ByteTree([ByteTree(first), ByteTree(second)]).to_byte_array()
+    encrypted_vote = ByteTree(json.loads(vote)).to_byte_array()
     hashed_encryption = sha256()
     hashed_encryption.update(encrypted_vote)
     hex_string = hashed_encryption.digest().hex()
@@ -242,18 +239,12 @@ def root():
 def _validate_vote(vote):
     try:
         x = json.loads(vote)
-        first = x[0]
-        second = x[1]
-        ByteTree.from_byte_array(first)
-        ByteTree.from_byte_array(second)
+        ByteTree(x)
     except json.JSONDecodeError:
         return "JSON Decode Error"
-    except AssertionError:
+    except TypeError:
         return "Vote could not be parsed into a valid ByteTree"
 
-    len_x = len(x)
-    if len_x != 2:
-        return f"Expected 2 elements, got {len_x}"
 
     return None
 
